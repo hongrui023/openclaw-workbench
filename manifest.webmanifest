@@ -1,0 +1,16 @@
+{
+  "name": "个人工作台 · Olive Workbench",
+  "short_name": "个人工作台",
+  "description": "简约干净的个人工作台：打卡待办、身体管理、猫咪档案等15个板块，数据本地保存",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFBD3",
+  "theme_color": "#8AA832",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
