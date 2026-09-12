@@ -1,0 +1,2488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>个人工作台 · Olive Workbench</title>
+<meta name="description" content="简约干净的本地持久化个人工作台">
+<meta name="theme-color" content="#8AA832">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="个人工作台">
+<style>
+/* ================= 主题变量 ================= */
+:root{
+  --olive:#8AA832;          /* 青橄榄 */
+  --olive-deep:#6E8A22;     /* 悬浮加深 */
+  --olive-soft:#A9BE66;     /* 低饱和柔和绿 */
+  --olive-bg:#F3F7E4;       /* 极浅绿底 */
+  --olive-line:#DDE7BC;
+  --cream:#FFFBD3;          /* 月白米 */
+  --bg:#FFFDF2;             /* 月白米淡化·页面底色 */
+  --card:#FFFFFF;
+  --choco:#331915;          /* 黑巧棕 */
+  --choco-soft:#6B4A44;     /* 次级文字 */
+  --choco-faint:#9C8078;    /* 弱化文字 */
+  --choco-deep:#1E0E0B;     /* 悬浮文字加深 */
+  --line:rgba(51,25,21,.10);
+  --danger:#B8503F;
+  --warn:#C08A2D;
+  --radius:16px;
+  --tr:all .22s cubic-bezier(.4,0,.2,1);
+  --shadow:0 2px 14px rgba(51,25,21,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--choco);line-height:1.65;font-size:15.5px;
+}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;color:var(--choco)}
+a{color:var(--olive-deep);text-decoration:none;transition:var(--tr)}
+a:hover{color:var(--choco-deep);text-decoration:underline}
+::selection{background:var(--olive-soft);color:#fff}
+
+/* ================= 布局 ================= */
+#sidebar{
+  width:252px;position:fixed;top:0;bottom:0;left:0;z-index:60;
+  background:var(--card);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:22px 14px 14px;
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+}
+.logo{display:flex;align-items:center;gap:10px;padding:2px 10px 18px;border-bottom:1px dashed var(--line)}
+.logo-badge{width:38px;height:38px;border-radius:12px;background:var(--olive);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;box-shadow:0 3px 10px rgba(138,168,50,.35)}
+.logo b{font-size:16.5px;letter-spacing:.5px;display:block;line-height:1.3}
+.logo small{color:var(--choco-faint);font-size:11px;letter-spacing:1px}
+.nav{flex:1;overflow-y:auto;margin-top:12px;display:flex;flex-direction:column;gap:3px;padding:4px 2px 12px;scrollbar-width:thin}
+.nav::-webkit-scrollbar{width:4px}
+.nav::-webkit-scrollbar-thumb{background:var(--olive-line);border-radius:4px}
+.nav a{
+  display:flex;align-items:center;gap:11px;padding:9.5px 13px;border-radius:12px;
+  color:var(--choco-soft);font-size:14.5px;transition:var(--tr);text-decoration:none;
+  border:1px solid transparent;white-space:nowrap;
+}
+.nav a .ni{font-size:17px;width:22px;text-align:center;flex:none;filter:saturate(.85)}
+.nav a:hover{background:var(--olive-bg);color:var(--choco-deep);border-color:var(--olive-line);text-decoration:none;transform:translateX(3px)}
+.nav a:active{background:#E9F0D2;transform:scale(.97)}
+.nav a.active{background:var(--cream);color:var(--choco);font-weight:600;border-color:rgba(138,168,50,.28);box-shadow:inset 3px 0 0 var(--olive)}
+.side-foot{padding:12px 10px 4px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--choco-faint);text-align:center;letter-spacing:.4px}
+
+#topbar{
+  display:none;position:fixed;top:0;left:0;right:0;height:58px;z-index:50;
+  background:rgba(255,253,242,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);align-items:center;gap:12px;padding:0 14px;
+}
+#topTitle{font-weight:600;font-size:16.5px;flex:1;text-align:center}
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+  color:var(--choco);font-size:19px;display:flex;align-items:center;justify-content:center;transition:var(--tr);
+}
+.icon-btn:hover{background:var(--olive-bg);border-color:var(--olive-line);color:var(--choco-deep)}
+.icon-btn:active{transform:scale(.9);background:#E9F0D2}
+#mask{position:fixed;inset:0;background:rgba(51,25,21,.28);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:55}
+#mask.show{opacity:1;pointer-events:auto}
+
+#main{margin-left:252px;padding:30px 36px 110px;min-height:100vh}
+#page{max-width:860px;margin:0 auto}
+
+/* ================= 页头 & 卡片 ================= */
+.page-head{margin-bottom:22px}
+.page-head h1{font-size:22px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.page-head p{color:var(--choco-faint);font-size:13.5px;margin-top:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 20px 18px;box-shadow:var(--shadow);margin-bottom:20px}
+.card h3{font-size:15.5px;font-weight:650;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .cnt{font-size:12px;color:var(--olive-deep);background:var(--olive-bg);border-radius:999px;padding:1px 10px;font-weight:600}
+.hint{font-size:12.5px;color:var(--choco-faint);margin-bottom:10px}
+.block{margin-bottom:30px}
+
+/* ================= 子分区标签（全局统一交互） ================= */
+.subtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.subtab{
+  padding:8px 17px;border-radius:999px;background:var(--card);border:1px solid var(--line);
+  color:var(--choco-soft);font-size:13.5px;transition:var(--tr);font-weight:500;
+}
+.subtab:hover{color:var(--choco-deep);border-color:var(--olive-soft);background:var(--olive-bg)}
+.subtab:active{transform:scale(.94);background:#E9F0D2}
+.subtab.active{background:var(--olive);border-color:var(--olive);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(138,168,50,.3)}
+.subtab.active:hover{background:var(--olive-deep);border-color:var(--olive-deep);color:#fff}
+
+/* ================= 表单（放大输入区·适配手机） ================= */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--choco-soft);margin-bottom:5px;font-weight:550}
+input[type=text],input[type=number],input[type=date],input[type=url],select,textarea{
+  width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);
+  font-size:16px;outline:none;transition:var(--tr);appearance:none;-webkit-appearance:none;
+}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B4A44' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+textarea{min-height:88px;resize:vertical;line-height:1.6}
+input:focus,select:focus,textarea:focus{border-color:var(--olive-soft);box-shadow:0 0 0 4px rgba(138,168,50,.12);background:#fff}
+input::placeholder,textarea::placeholder{color:#C2AFA9}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.inline-form{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.inline-form input[type=text]{flex:1;min-width:180px}
+
+/* ================= 按钮（全局统一交互） ================= */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:11px 22px;border-radius:12px;border:1.5px solid transparent;
+  font-size:14.5px;font-weight:600;transition:var(--tr);white-space:nowrap;user-select:none;
+}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.btn-primary{background:var(--olive);color:#fff}
+.btn-primary:hover{background:var(--olive-deep);color:#fff;transform:translateY(-1.5px);box-shadow:0 5px 14px rgba(110,138,34,.32)}
+.btn-primary:active{transform:translateY(0) scale(.95);background:#5F7A1D}
+.btn-ghost{background:var(--card);color:var(--choco-soft);border-color:var(--line)}
+.btn-ghost:hover{color:var(--choco-deep);border-color:var(--olive-soft);background:var(--olive-bg)}
+.btn-ghost:active{transform:scale(.95);background:#E9F0D2}
+.btn-soft{background:var(--cream);color:var(--choco);border-color:rgba(138,168,50,.25)}
+.btn-soft:hover{color:var(--choco-deep);background:#FFF7BE;border-color:var(--olive-soft)}
+.btn-soft:active{transform:scale(.95)}
+.btn-danger{background:#FBEFEC;color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-danger:active{transform:scale(.95)}
+
+/* ================= 通用列表行（全局统一 hover 变色） ================= */
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:13px;
+  background:var(--card);border:1px solid transparent;transition:var(--tr);
+}
+.row:hover{background:var(--olive-bg);border-color:var(--olive-line)}
+.row:active{background:#E9F0D2}
+.row.done .row-text{text-decoration:line-through;color:var(--choco-faint)}
+.row-text{flex:1;min-width:0;word-break:break-word;font-size:15px;transition:var(--tr)}
+.row:hover .row-text{color:var(--choco-deep)}
+.row-extra{font-size:12px;color:var(--choco-faint);flex:none;max-width:38%;text-align:right;word-break:break-all}
+.del{
+  flex:none;width:30px;height:30px;border-radius:9px;border:none;background:transparent;
+  color:var(--choco-faint);font-size:14px;opacity:.4;transition:var(--tr);display:flex;align-items:center;justify-content:center;
+}
+.del:hover{opacity:1;color:#fff;background:var(--danger)}
+.del:active{transform:scale(.85)}
+
+/* 复选框（青橄榄·低饱和柔和） */
+.chk{
+  appearance:none;-webkit-appearance:none;width:22px;height:22px;flex:none;cursor:pointer;
+  border:2px solid var(--olive-soft);border-radius:7px;background:#fff;transition:var(--tr);position:relative;
+}
+.chk:hover{border-color:var(--olive);box-shadow:0 0 0 4px rgba(138,168,50,.13)}
+.chk:active{transform:scale(.88)}
+.chk:checked{background:var(--olive-soft);border-color:var(--olive-soft)}
+.chk:checked::after{
+  content:"";position:absolute;left:5.5px;top:2px;width:6px;height:11px;
+  border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(43deg);
+}
+
+/* 徽章/标签 */
+.tag{display:inline-flex;align-items:center;font-size:11.5px;padding:2px 10px;border-radius:999px;background:var(--cream);color:var(--choco-soft);border:1px solid rgba(138,168,50,.22);font-weight:550;white-space:nowrap}
+.tag-olive{background:var(--olive-bg);color:var(--olive-deep);border-color:var(--olive-line)}
+.tag-warn{background:#FBF3DE;color:var(--warn);border-color:#F0E0B0}
+.tag-danger{background:#FBEFEC;color:var(--danger);border-color:#F2D5CE}
+.tag-gray{background:#F5F1EA;color:var(--choco-faint);border-color:var(--line)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:6px 14px;border-radius:999px;font-size:12.5px;background:var(--card);border:1px solid var(--line);color:var(--choco-soft);transition:var(--tr)}
+.chip:hover{background:var(--olive-bg);color:var(--choco-deep);border-color:var(--olive-soft)}
+.chip:active{transform:scale(.93)}
+.chip.active{background:var(--olive);border-color:var(--olive);color:#fff;font-weight:600}
+.chip.active:hover{background:var(--olive-deep)}
+
+/* 进度条 */
+.progress{height:10px;background:#F1EDE3;border-radius:999px;overflow:hidden}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--olive-soft),var(--olive));border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress.thin{height:6px}
+
+/* 空状态 / 提示 */
+.empty{padding:26px 10px;text-align:center;color:var(--choco-faint);font-size:13.5px}
+.empty .em{font-size:26px;display:block;margin-bottom:6px;opacity:.75}
+.note-box{background:var(--olive-bg);border:1px solid var(--olive-line);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--choco-soft)}
+.note-box b{color:var(--olive-deep)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.stat-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;transition:var(--tr)}
+.stat-cell:hover{border-color:var(--olive-line);background:var(--olive-bg)}
+.stat-cell .num{font-size:22px;font-weight:700;color:var(--olive-deep)}
+.stat-cell .lab{font-size:12px;color:var(--choco-faint);margin-top:2px}
+.big-day{text-align:center;padding:8px 0 4px}
+.big-day .d{font-size:52px;font-weight:800;color:var(--olive);line-height:1.1;letter-spacing:-1px}
+.big-day .l{font-size:13px;color:var(--choco-faint)}
+
+/* 表格 */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px;background:var(--card)}
+th{background:var(--olive-bg);color:var(--choco-soft);font-weight:600;padding:10px 12px;text-align:left;white-space:nowrap}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:middle}
+tbody tr{transition:var(--tr)}
+tbody tr:hover{background:var(--olive-bg)}
+tbody tr:hover td{color:var(--choco-deep)}
+
+/* 图片 */
+.thumb{width:74px;height:74px;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:pointer;transition:var(--tr);flex:none}
+.thumb:hover{transform:scale(1.05);box-shadow:0 4px 14px rgba(51,25,21,.15);border-color:var(--olive-soft)}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:pointer;transition:var(--tr)}
+.photo-grid img:hover{transform:scale(1.04);box-shadow:0 4px 14px rgba(51,25,21,.16)}
+
+/* Toast / Modal */
+#toastWrap{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{
+  background:var(--choco);color:var(--cream);padding:10px 22px;border-radius:999px;font-size:13.5px;
+  box-shadow:0 8px 24px rgba(51,25,21,.25);animation:toastIn .3s cubic-bezier(.4,0,.2,1);max-width:86vw;
+}
+.toast.err{background:var(--danger);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px) scale(.92)}to{opacity:1;transform:none}}
+.modal-mask{position:fixed;inset:0;background:rgba(51,25,21,.4);backdrop-filter:blur(3px);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{
+  background:var(--card);border-radius:20px;padding:26px 24px;max-width:430px;width:100%;
+  box-shadow:0 20px 60px rgba(51,25,21,.3);animation:popIn .3s cubic-bezier(.34,1.4,.64,1);max-height:86vh;overflow-y:auto;
+}
+@keyframes popIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:none}}
+.modal-card h2{font-size:17.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.modal-card p{font-size:14px;color:var(--choco-soft);margin-bottom:10px}
+.modal-btns{display:flex;gap:10px;margin-top:18px}
+.modal-btns .btn{flex:1}
+.lb-img{max-width:92vw;max-height:84vh;border-radius:14px;display:block}
+
+/* 打卡日期卡 */
+.date-hero{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.date-hero .d1{font-size:17px;font-weight:700}
+.date-hero .d2{font-size:12.5px;color:var(--choco-faint)}
+
+/* 明细行 */
+.ledger{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:12px;transition:var(--tr);border:1px solid transparent;align-items:center;flex-wrap:wrap}
+.ledger:hover{background:var(--olive-bg);border-color:var(--olive-line)}
+.money-in{color:var(--olive-deep);font-weight:700}
+.money-out{color:var(--danger);font-weight:700}
+
+/* 折叠 */
+details.fold{border:1px solid var(--line);border-radius:13px;background:var(--card);overflow:hidden;transition:var(--tr)}
+details.fold:hover{border-color:var(--olive-line)}
+details.fold summary{padding:12px 15px;cursor:pointer;font-size:13.5px;color:var(--choco-soft);font-weight:550;list-style:none;display:flex;justify-content:space-between;align-items:center;transition:var(--tr)}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary:hover{background:var(--olive-bg);color:var(--choco-deep)}
+details.fold[open] summary{border-bottom:1px dashed var(--line)}
+.fold-body{padding:12px 15px;display:flex;flex-direction:column;gap:6px}
+
+/* 建议列表 */
+.advice-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.advice-item{display:flex;gap:10px;padding:11px 13px;border-radius:12px;background:var(--olive-bg);border:1px solid var(--olive-line);font-size:13.5px;transition:var(--tr)}
+.advice-item:hover{background:#EDF3D8;border-color:var(--olive-soft)}
+.advice-item .ico{flex:none;font-size:15px}
+.advice-item b{color:var(--olive-deep);display:block;margin-bottom:2px;font-size:13px}
+
+/* 拆解报告 */
+.report{border:1px solid var(--olive-line);border-radius:14px;padding:14px;background:linear-gradient(180deg,var(--olive-bg),#fff 60px);margin-top:12px}
+.report h4{font-size:14px;margin-bottom:8px;color:var(--choco)}
+.report ul{padding-left:18px;font-size:13px;color:var(--choco-soft);display:flex;flex-direction:column;gap:4px}
+.report li::marker{color:var(--olive)}
+
+/* 响应式：手机端 */
+@media(max-width:900px){
+  #sidebar{transform:translateX(-106%);box-shadow:8px 0 40px rgba(51,25,21,.18);width:272px;padding-top:18px}
+  #sidebar.open{transform:none}
+  #topbar{display:flex}
+  #main{margin-left:0;padding:76px 15px 80px}
+  .form-grid,.form-grid-3{grid-template-columns:1fr 1fr}
+  .card{padding:17px 15px 15px}
+  .page-head h1{font-size:19px}
+  .big-day .d{font-size:44px}
+}
+@media(max-width:430px){
+  .form-grid-3{grid-template-columns:1fr 1fr}
+  .inline-form input[type=text]{min-width:0;width:100%}
+  .inline-form .btn{width:100%}
+}
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-badge">🌿</div>
+    <div><b>个人工作台</b><small>OLIVE WORKBENCH</small></div>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div class="side-foot">数据仅存于本机 · 记得定期备份</div>
+</aside>
+<div id="mask"></div>
+<header id="topbar">
+  <button class="icon-btn" id="menuBtn" aria-label="打开菜单">☰</button>
+  <div id="topTitle"></div>
+  <span style="width:40px"></span>
+</header>
+<main id="main"><section id="page"></section></main>
+<div id="toastWrap"></div>
+<div id="modalWrap"></div>
+
+<!-- 内联自 js/core.js -->
+<script>
+'use strict';
+/* ================================================================
+   Olive Workbench · 核心引擎
+   本地持久化存储 / 路由 / 全局统一交互 / 通用组件
+================================================================ */
+
+/* ---------- 工具 ---------- */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad2 = n => String(n).padStart(2, '0');
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); };
+const tomorrow = () => { const d = new Date(Date.now()+864e5); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); };
+const sd = s => { const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); };
+const daysBetween = (a, b) => Math.round((sd(b) - sd(a)) / 864e5);
+const addDays = (s, n) => { const d = sd(s); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); };
+const cnDate = s => { if(!s) return ''; const [y,m,d] = s.split('-'); const wd = '日一二三四五六'[sd(s).getDay()]; return `${+y}年${+m}月${+d}日 周${wd}`; };
+const shortDate = s => { if(!s) return ''; const [y,m,d] = s.split('-'); return +y===new Date().getFullYear() ? `${+m}/${+d}` : `${y}/${+m}/${+d}`; };
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+/* ---------- 本地持久化存储 ---------- */
+const DB = {
+  get(k, d) { try { const v = localStorage.getItem('wb_' + k); return v == null ? d : JSON.parse(v); } catch(e) { return d; } },
+  set(k, v) {
+    try { localStorage.setItem('wb_' + k, JSON.stringify(v)); }
+    catch(e) { toast('⚠️ 本地存储空间不足，请清理旧照片或导出备份', 'err'); }
+    cloudMarkDirty(k);
+    return v;
+  },
+  keys() { return Object.keys(localStorage).filter(k => k.startsWith('wb_')); }
+};
+
+/* ---------- UI 状态（子tab 等，不持久化） ---------- */
+const ui = { route: '', tab: {}, filter: {} };
+
+/* ---------- 轻提示 ---------- */
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'err' ? ' err' : '');
+  el.textContent = msg;
+  $('#toastWrap').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .4s, transform .4s'; el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; }, 1900);
+  setTimeout(() => el.remove(), 2400);
+}
+
+/* ---------- 模态框 ---------- */
+function openModal(html) { $('#modalWrap').innerHTML = `<div class="modal-mask" data-close-mask><div class="modal-card">${html}</div></div>`; }
+function closeModal() { $('#modalWrap').innerHTML = ''; }
+function confirmBox(msg, onOk, okText) {
+  openModal(`
+    <h2>请确认</h2><p>${msg}</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" data-act="closeModal">取消</button>
+      <button class="btn btn-primary" id="cfOk">${okText || '确定'}</button>
+    </div>`);
+  $('#cfOk').onclick = () => { closeModal(); onOk(); };
+}
+function lightbox(src) {
+  openModal(`<img class="lb-img" src="${src}" alt="查看图片" data-act="closeModal">`);
+}
+
+/* ---------- 模块注册 & 路由 ---------- */
+const MODULES = [];
+const registerModule = m => MODULES.push(m);
+
+function buildNav() {
+  $('#nav').innerHTML = MODULES.map(m =>
+    `<a href="#/${m.id}" data-page="${m.id}"><span class="ni">${m.icon}</span><span>${m.name}</span></a>`).join('');
+}
+
+function currentModule() {
+  const id = (location.hash || '').replace('#/', '');
+  return MODULES.find(m => m.id === id) || MODULES[0];
+}
+
+function renderRoute() {
+  const m = currentModule();
+  ui.route = m.id;
+  $('#topTitle').textContent = m.icon + ' ' + m.name;
+  $$('#nav a').forEach(a => a.classList.toggle('active', a.dataset.page === m.id));
+  m.render($('#page'));
+  closeSidebar();
+  window.scrollTo(0, 0);
+}
+function refresh() {
+  const m = MODULES.find(x => x.id === ui.route);
+  if (m) m.render($('#page'));
+}
+
+/* ---------- 侧栏开合（手机端） ---------- */
+function openSidebar() { $('#sidebar').classList.add('open'); $('#mask').classList.add('show'); }
+function closeSidebar() { $('#sidebar').classList.remove('open'); $('#mask').classList.remove('show'); }
+
+/* ---------- 通用 UI 片段 ---------- */
+function pageHead(icon, name, desc) {
+  return `<div class="page-head"><h1>${icon} ${esc(name)}</h1><p>${desc || ''}</p></div>`;
+}
+function subtabs(groupId, tabs) {
+  const cur = ui.tab[groupId] || tabs[0].id;
+  ui.tab[groupId] = cur;
+  return `<div class="subtabs">` + tabs.map(t =>
+    `<button class="subtab${cur === t.id ? ' active' : ''}" data-act="subtab" data-group="${groupId}" data-tab="${t.id}">${t.name}</button>`).join('') + `</div>`;
+}
+/* 通用勾选行：绿色打勾 + hover 变色 + 删除（全局统一） */
+function checkRow(item, key, extra) {
+  return `<div class="row${item.done ? ' done' : ''}">
+    <input type="checkbox" class="chk" ${item.done ? 'checked' : ''} data-chg="chk" data-key="${key}" data-id="${item.id}">
+    <span class="row-text">${esc(item.text)}</span>
+    ${extra || ''}
+    <button class="del" title="删除" data-act="delItem" data-key="${key}" data-id="${item.id}">✕</button>
+  </div>`;
+}
+function emptyBox(em, text) { return `<div class="empty"><span class="em">${em || '🌿'}</span>${text || '暂无内容，来添加第一条吧'}</div>`; }
+function progressBar(pct) { return `<div class="progress"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`; }
+
+/* ---------- 全局事件委托（所有交互统一入口） ---------- */
+const ACTIONS = {
+  subtab(el) { ui.tab[el.dataset.group] = el.dataset.tab; refresh(); },
+  closeModal() { closeModal(); },
+  delItem(el) {
+    const key = el.dataset.key, id = el.dataset.id;
+    const list = DB.get(key, []); const i = list.findIndex(x => x.id === id);
+    if (i > -1) { list.splice(i, 1); DB.set(key, list); refresh(); toast('已删除'); }
+  },
+  toggleDone(el) {
+    const key = el.dataset.key, id = el.dataset.id;
+    const list = DB.get(key, []); const it = list.find(x => x.id === id);
+    if (it) { it.done = !it.done; it.doneAt = it.done ? new Date().toISOString() : null; DB.set(key, list); refresh(); }
+  },
+  /* 通用添加（输入框 + 回车/按钮）：data-key 存储、data-input 输入框 id */
+  addSimple(el) {
+    const input = document.getElementById(el.dataset.input);
+    const text = (input.value || '').trim();
+    if (!text) { toast('先输入内容哦', 'err'); input.focus(); return; }
+    const key = el.dataset.key;
+    const list = DB.get(key, []);
+    const item = { id: uid(), text, done: false, date: today(), createdAt: new Date().toISOString() };
+    if (el.dataset.extra) Object.assign(item, JSON.parse(el.dataset.extra));
+    list.unshift(item); DB.set(key, list);
+    input.value = ''; refresh(); toast('已添加 ✓');
+  }
+};
+const CHANGES = {
+  /* 勾选/取消 → 绿色打勾 */
+  chk(el) {
+    const key = el.dataset.key, id = el.dataset.id;
+    const list = DB.get(key, []); const it = list.find(x => x.id === id);
+    if (it) { it.done = el.checked; it.doneAt = el.checked ? new Date().toISOString() : null; DB.set(key, list); refresh(); }
+  },
+  /* 即时保存型输入：data-save=DB键名 data-path=字段名（不整页刷新） */
+  save(el) {
+    const rec = DB.get(el.dataset.save, {});
+    rec[el.dataset.path] = el.value;
+    DB.set(el.dataset.save, rec);
+    if (el.dataset.after && window[el.dataset.after]) window[el.dataset.after]();
+  }
+};
+
+document.addEventListener('click', e => {
+  const closer = e.target.closest('[data-close-mask]');
+  if (closer && e.target === closer) { closeModal(); return; }
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) { e.preventDefault(); fn(el, e); }
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-chg]');
+  if (el) { const fn = CHANGES[el.dataset.chg]; if (fn) fn(el, e); }
+});
+/* 回车即添加 */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('.inline-form input[type=text], .inline-form input[type=number]')) {
+    const btn = e.target.closest('.inline-form')?.querySelector('[data-act^="add"]');
+    if (btn) btn.click();
+  }
+});
+
+/* ---------- 数据备份：导出 / 导入 ---------- */
+function exportData() {
+  const dump = {};
+  DB.keys().forEach(k => { if (!CLOUD_EXCLUDE.includes(k.slice(3))) dump[k] = localStorage.getItem(k); });
+  const blob = new Blob([JSON.stringify({ app: 'olive-workbench', version: 1, exportedAt: new Date().toISOString(), data: dump }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '个人工作台备份-' + today() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 800);
+  toast('备份文件已导出 ✓');
+}
+function importData(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      if (!obj || !obj.data || obj.app !== 'olive-workbench') throw new Error('bad');
+      const n = Object.keys(obj.data).length;
+      confirmBox(`备份导出于 ${shortDate((obj.exportedAt || '').slice(0, 10))}，包含 <b>${n}</b> 项数据。<br><br>导入将<b>覆盖</b>当前全部数据，确定继续吗？`, () => {
+        Object.entries(obj.data).forEach(([k, v]) => localStorage.setItem(k, v));
+        toast('导入成功，正在刷新…');
+        setTimeout(() => location.reload(), 700);
+      }, '确认导入');
+    } catch(e) { toast('备份文件格式不正确', 'err'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- 首次隐私提醒 ---------- */
+function privacyCheck() {
+  if (DB.get('privacy_ack', false)) return;
+  openModal(`
+    <h2>🌿 欢迎使用个人工作台</h2>
+    <p>开始使用前，请了解以下隐私说明：</p>
+    <div class="note-box" style="margin-bottom:10px">
+      📌 本工作台为<b>纯本地应用</b>：你录入的全部数据只保存在<b>这台设备的浏览器本地存储</b>中，不会上传到任何服务器。<br><br>
+      💡 请注意：<br>· 清除浏览器缓存 / 网站数据会导致数据丢失<br>· 换手机或换浏览器数据不会自动同步<br>· 建议在「设置」页定期使用<b>导出全部数据备份</b>
+    </div>
+    <div class="modal-btns"><button class="btn btn-primary" data-act="privacyOk">我已了解，开始使用</button></div>`);
+}
+ACTIONS.privacyOk = () => { DB.set('privacy_ack', true); closeModal(); toast('欢迎使用 🌿'); };
+
+/* ---------- 图片压缩（体态照等，防止撑爆本地存储） ---------- */
+function compressImage(file, max = 760, q = .68) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const sc = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc);
+        c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- 画布圆角矩形 ---------- */
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ---------- 内置知识库 ---------- */
+/* 常见食材热量（每100g · kcal） */
+const FOOD_KCAL = { '米饭':116,'馒头':223,'面条':110,'全麦面包':246,'燕麦':367,'红薯':86,'土豆':81,'玉米':112,'山药':57,
+  '鸡胸肉':133,'鸡腿':181,'牛肉':250,'猪瘦':143,'五花肉':518,'三文鱼':139,'虾':93,'带鱼':127,'鸡蛋':144,'豆腐':82,'豆浆':31,
+  '牛奶':54,'酸奶':62,'奶酪':328,'西兰花':36,'菠菜':24,'生菜':15,'番茄':20,'黄瓜':16,'胡萝卜':39,'白菜':18,'蘑菇':24,'南瓜':23,
+  '苹果':53,'香蕉':93,'橙子':48,'葡萄':45,'西瓜':31,'蓝莓':57,'草莓':32,'牛油果':161,'坚果':607,'花生':574,'薯片':548,'巧克力':546,
+  '蛋糕':348,'冰淇淋':207,'可乐':43,'奶茶':120,'拿铁':75,'黑咖啡':1,'橄榄油':899,'沙拉酱':680 };
+function lookupKcal(name) { for (const k in FOOD_KCAL) { if (name.includes(k)) return FOOD_KCAL[k]; } return null; }
+/* 运动代谢当量 MET */
+const SPORTS = { '快走':3.5,'慢跑':7,'跳绳':10,'瑜伽':2.5,'拉伸':2.3,'力量训练':5,'骑行':6,'游泳':8,'HIIT':8,'舞蹈':5,'爬楼梯':8,'球类':6.5,'其他':4 };
+/* 颜色词 → 色值（穿搭图/建议用） */
+const COLOR_WORDS = { '黑':'#2B2B2B','白':'#F7F5EF','米':'#E8DDC4','杏':'#E8CDB8','灰':'#9A9A9A','深蓝':'#2F4560','蓝':'#5B7FA6','牛仔':'#6D88A8','绿':'#7F9C4F','橄榄绿':'#8AA832','抹茶':'#9CAF6E','粉':'#E8B4B8','棕':'#8B5E3C','咖':'#7A5544','驼':'#C19A6B','卡其':'#B49B72','红':'#C25B5B','酒红':'#8E3B46','黄':'#E3C567','紫':'#9B7EB8','橙':'#E08E5A','银':'#C9C9C9','金':'#CBB26A','格子':'#8FA3B8','条纹':'#9BA8B5' };
+function pickColor(text) { const t = String(text || ''); for (const k in COLOR_WORDS) { if (t.includes(k)) return COLOR_WORDS[k]; } return '#D9D2C0'; }
+
+/* ================================================================
+   ☁️ 云端备份：GitHub Gist / WebDAV（极空间 NAS）
+   - 备份内容为全部板块数据 JSON（不含云服务凭据本身）
+   - 凭据仅保存在本机浏览器 localStorage，不随备份导出
+================================================================ */
+const CLOUD_EXCLUDE = ['cloud_github', 'cloud_webdav', 'cloud_meta', 'cloud_snapshot', 'cloud_auto', 'privacy_ack'];
+let cloudSuppress = false, cloudTimer = null;
+const b64 = s => btoa(unescape(encodeURIComponent(s)));
+const fmtTime = iso => { if (!iso) return '—'; const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+
+function cloudCollect() {
+  const dump = {};
+  DB.keys().forEach(k => { const short = k.slice(3); if (!CLOUD_EXCLUDE.includes(short)) dump[k] = localStorage.getItem(k); });
+  return JSON.stringify({ app: 'olive-workbench', version: 1, exportedAt: new Date().toISOString(), data: dump });
+}
+
+/* 数据变动 → 自动备份（10分钟冷却，需在设置中开启） */
+function cloudMarkDirty(k) {
+  if (cloudSuppress || !k || CLOUD_EXCLUDE.includes(k)) return;
+  if (!DB.get('cloud_auto', false)) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async () => {
+    const wd = DB.get('cloud_webdav', {}), gh = DB.get('cloud_github', {});
+    try {
+      let mode = '';
+      if (wd.url && wd.user) { await CloudSync.webdavUpload(); mode = 'NAS'; }
+      else if (gh.token) { await CloudSync.gistUpload(); mode = 'GitHub'; }
+      else return;
+      const m = DB.get('cloud_meta', {}); m.lastBackup = new Date().toISOString(); m.lastMode = mode; DB.set('cloud_meta', m);
+      toast('☁️ 已自动备份到' + mode);
+    } catch (e) { /* 自动备份失败保持静默，可在设置页手动重试 */ }
+  }, 10 * 60 * 1000);
+}
+
+const CloudSync = {
+  githubCfg() { return DB.get('cloud_github', {}); },
+  webdavCfg() { return DB.get('cloud_webdav', {}); },
+  meta() { return DB.get('cloud_meta', {}); },
+
+  /* ---- GitHub Gist（私密备份 · api.github.com 支持浏览器跨域） ---- */
+  async gistUpload() {
+    const { token, gistId } = this.githubCfg();
+    if (!token) throw new Error('请先填写 GitHub Token');
+    const files = { 'workbench-backup.json': { content: cloudCollect() } };
+    let res;
+    if (gistId) {
+      res = await fetch('https://api.github.com/gists/' + gistId, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files })
+      });
+    } else {
+      res = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'Olive Workbench 备份 · ' + today(), files, public: false })
+      });
+      if (res.ok) {
+        const j = await res.json();
+        const cfg = this.githubCfg(); cfg.gistId = j.id; DB.set('cloud_github', cfg);
+      }
+    }
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error('GitHub ' + res.status + (j.message ? '：' + j.message : '') + (res.status === 401 ? '（Token 无效或权限不足，需勾选 gist 权限）' : ''));
+    }
+    return gistId ? '已更新云端备份' : '已创建云端备份';
+  },
+  async gistDownload() {
+    const { token, gistId } = this.githubCfg();
+    if (!gistId) throw new Error('还没有云端备份（先执行一次备份）');
+    if (!token) throw new Error('请先填写 GitHub Token');
+    const res = await fetch('https://api.github.com/gists/' + gistId, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error('GitHub ' + res.status + (res.status === 401 ? '（Token 无效）' : res.status === 404 ? '（Gist 不存在）' : ''));
+    const j = await res.json();
+    const f = j.files && j.files['workbench-backup.json'];
+    if (!f || !f.content) throw new Error('云端备份文件为空');
+    if (f.truncated) throw new Error('备份过大，Gist 仅存了摘要，请改用 NAS 方式');
+    return JSON.parse(f.content);
+  },
+  async gistTest() {
+    const { token } = this.githubCfg();
+    if (!token) throw new Error('请先填写 GitHub Token');
+    const res = await fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) throw new Error('Token 校验失败 ' + res.status + (res.status === 401 ? '（Token 无效或未勾选 gist 权限）' : '（网络无法访问 GitHub，可稍后重试或改用 NAS）'));
+    const j = await res.json();
+    return '连接成功 · 账号 ' + (j.login || '未知');
+  },
+
+  /* ---- WebDAV（极空间 NAS：PUT 上传 / GET 读取） ---- */
+  auth() { const { user = '', pass = '' } = this.webdavCfg(); return { Authorization: 'Basic ' + b64(user + ':' + pass) }; },
+  fileUrl() {
+    const { url = '', dir = '' } = this.webdavCfg();
+    let base = url.trim().replace(/\/+$/, '');
+    if (dir.trim()) base += '/' + dir.trim().replace(/^\/+|\/+$/g, '');
+    return base + '/workbench-backup.json';
+  },
+  async webdavUpload() {
+    const { url, user } = this.webdavCfg();
+    if (!url || !user) throw new Error('请先填写 WebDAV 地址与账号');
+    const base = this.fileUrl().replace(/\/[^/]+$/, '');
+    try { await fetch(base, { method: 'MKCOL', headers: this.auth() }); } catch (e) { /* 目录已存在或不支持，忽略 */ }
+    const res = await fetch(this.fileUrl(), { method: 'PUT', headers: { ...this.auth(), 'Content-Type': 'application/json' }, body: cloudCollect() });
+    if (!res.ok && res.status !== 201 && res.status !== 204) {
+      throw new Error('NAS 返回 ' + res.status + (res.status === 401 ? '（账号或密码错误）' : res.status === 403 ? '（无写入权限）' : res.status === 409 ? '（目录不存在且无法创建）' : ''));
+    }
+    return '已上传到 NAS';
+  },
+  async webdavDownload() {
+    const { url, user } = this.webdavCfg();
+    if (!url || !user) throw new Error('请先填写 WebDAV 地址与账号');
+    const res = await fetch(this.fileUrl(), { headers: this.auth() });
+    if (res.status === 404) throw new Error('云端暂无备份（先执行一次备份）');
+    if (!res.ok) throw new Error('NAS 返回 ' + res.status + (res.status === 401 ? '（账号或密码错误）' : ''));
+    return JSON.parse(await res.text());
+  },
+  async webdavTest() {
+    try {
+      const res = await fetch(this.fileUrl(), { headers: this.auth() });
+      if (res.status === 401 || res.status === 403) throw new Error('账号或密码错误（' + res.status + '）');
+      if (res.ok) return '连接成功 · 已找到云端备份';
+      if (res.status === 404) return '连接成功 · 云端暂无备份，可直接执行备份';
+      throw new Error('NAS 返回 ' + res.status);
+    } catch (e) {
+      if (/账号|NAS 返回|连接成功/.test(e.message)) throw e;
+      throw new Error('无法连接 NAS：请检查地址与端口是否正确、NAS 是否已开启 WebDAV；若用 https 页面访问 http:// 开头的 NAS 地址会被浏览器拦截（混合内容）；也可能 NAS 未允许浏览器跨域，可改用 GitHub 方式');
+    }
+  }
+};
+
+/* ---- 还原（含本地快照保护） ---- */
+function cloudRestore(obj, source) {
+  if (!obj || obj.app !== 'olive-workbench' || !obj.data) { toast('备份文件格式不正确', 'err'); return; }
+  const n = Object.keys(obj.data).length;
+  const snapRaw = {};
+  DB.keys().forEach(k => snapRaw[k] = localStorage.getItem(k));
+  DB.set('cloud_snapshot', { savedAt: new Date().toISOString(), data: snapRaw });
+  confirmBox(`从${source}读取到 <b>${n}</b> 项数据（备份于 ${fmtTime(obj.exportedAt)}）。<br><br>导入将<b>覆盖</b>本机当前数据；覆盖前已自动保存快照，可在设置页一键恢复。`, () => {
+    cloudSuppress = true;
+    Object.entries(obj.data).forEach(([k, v]) => localStorage.setItem(k, v));
+    const m = DB.get('cloud_meta', {}); m.lastRestore = new Date().toISOString(); m.lastSource = source; DB.set('cloud_meta', m);
+    toast('还原成功，正在刷新…');
+    setTimeout(() => { cloudSuppress = false; location.reload(); }, 700);
+  }, '确认还原');
+}
+
+</script>
+<!-- 内联自 js/modules-a.js -->
+<script>
+'use strict';
+/* ================================================================
+   板块 1-7：打卡&待办 / 自媒体 / 备考计划 / 技能学习 / 身体管理 / 物品管理 / 穿搭参考
+================================================================ */
+
+/* ============ 1. 📋 打卡&待办 ============ */
+registerModule({
+  id: 'checkin', icon: '📋', name: '打卡&待办',
+  render(el) {
+    const tab = ui.tab.checkin || 'checkin';
+    el.innerHTML = pageHead('📋', '打卡&待办', '备忘录式每日打卡 · 工作任务与长期计划双清单') +
+      subtabs('checkin', [{ id: 'checkin', name: '✅ 每日打卡' }, { id: 'todo', name: '📝 待办清单' }]) +
+      (tab === 'checkin' ? renderCheckinTab() : renderTodoTab());
+  }
+});
+
+function renderCheckinTab() {
+  const items = DB.get('checkin', []);
+  const t = today();
+  const todayItems = items.filter(i => (i.date || t) === t);
+  const doneN = todayItems.filter(i => i.done).length;
+  const hist = items.filter(i => i.date && i.date !== t);
+  const byDate = {};
+  hist.forEach(i => { (byDate[i.date] = byDate[i.date] || []).push(i); });
+  const histKeys = Object.keys(byDate).sort((a, b) => daysBetween(a, b));
+
+  return `
+  <div class="card">
+    <div class="date-hero">
+      <div><div class="d1">🗓️ ${cnDate(t)}</div><div class="d2">备忘录式打卡 · 每天自由新增</div></div>
+      <span class="tag tag-olive">今日完成 ${doneN}/${todayItems.length}</span>
+    </div>
+    ${progressBar(todayItems.length ? doneN / todayItems.length * 100 : 0)}
+    <div class="inline-form" style="margin-top:16px">
+      <input type="text" id="ciText" placeholder="添加今日打卡事项，如：早起一杯水…">
+      <button class="btn btn-primary" data-act="addCheckin">＋ 添加</button>
+    </div>
+    <div class="rows" style="margin-top:12px">
+      ${todayItems.length ? todayItems.map(i => checkRow(i, 'checkin')).join('') : emptyBox('☀️', '今天还没有打卡事项，先添加一条吧')}
+    </div>
+  </div>
+  ${histKeys.length ? `
+  <div class="card">
+    <h3>🗂️ 历史打卡<span class="cnt">${histKeys.length} 天</span></h3>
+    ${histKeys.slice(0, 14).map(d => {
+      const arr = byDate[d]; const dn = arr.filter(x => x.done).length;
+      return `<details class="fold" style="margin-bottom:8px">
+        <summary><span>${shortDate(d)}</span><span class="tag ${dn === arr.length ? 'tag-olive' : 'tag-gray'}">${dn}/${arr.length} 完成</span></summary>
+        <div class="fold-body">${arr.map(x => `<div class="row"><span style="flex:none">${x.done ? '✅' : '⬜'}</span><span class="row-text${x.done ? ' done' : ''}" style="text-decoration:${x.done ? 'line-through' : 'none'}">${esc(x.text)}</span></div>`).join('')}</div>
+      </details>`;
+    }).join('')}
+  </div>` : ''}`;
+}
+ACTIONS.addCheckin = el => {
+  const input = $('#ciText'); const text = (input.value || '').trim();
+  if (!text) { toast('先输入打卡事项哦', 'err'); return; }
+  const list = DB.get('checkin', []);
+  list.unshift({ id: uid(), text, done: false, date: today(), createdAt: new Date().toISOString() });
+  DB.set('checkin', list); input.value = ''; refresh();
+};
+ACTIONS.clearCheckinDone = () => {
+  const t = today();
+  confirmBox('确定清除今日已完成的打卡事项吗？', () => {
+    DB.set('checkin', DB.get('checkin', []).filter(i => !((i.date || t) === t && i.done)));
+    refresh(); toast('已清理');
+  });
+};
+
+function todoGroup(title, key, inputId, ph) {
+  const list = DB.get(key, []);
+  const undone = list.filter(i => !i.done).length;
+  return `
+  <div class="card">
+    <h3>${title}<span class="cnt">待完成 ${undone}</span></h3>
+    <div class="inline-form">
+      <input type="text" id="${inputId}" placeholder="${ph}">
+      <button class="btn btn-primary" data-act="addSimple" data-key="${key}" data-input="${inputId}">＋ 添加</button>
+    </div>
+    <div class="rows" style="margin-top:12px">
+      ${list.length ? list.map(i => checkRow(i, key)).join('') : emptyBox('🌿', '清单空空的，添加第一条吧')}
+    </div>
+  </div>`;
+}
+function renderTodoTab() {
+  return `
+  <div class="block">${todoGroup('💼 工作任务', 'todoWork', 'tdWorkText', '添加工作任务，如：完成周报…')}</div>
+  <div class="block">${todoGroup('🌙 长期后续计划', 'todoLong', 'tdLongText', '添加长期计划，如：三个月内学会剪辑…')}</div>`;
+}
+
+/* ============ 2. 🎬 自媒体 ============ */
+const VIRAL_POOL = [
+  { t: '30天早起挑战 Day X：普通人早起一小时会发生什么', track: '成长', plan: '开场直接亮第30天的变化对比 → 中段快剪每日打卡片段 → 结尾留悬念"下个30天挑战XX"。二创时改成自己的真实小事（如早起读书/做早餐），真实感更强。', src: 'https://www.douyin.com/search/30天早起挑战' },
+  { t: '一年后的自己，会感谢现在开始自律的你', track: '成长', plan: '文案情绪流：先扎心提问"你是不是也总说从明天开始" → 三个可立刻上手的小改变 → 结尾金句。二创重点：把金句换成自己的语言，配慢节奏空镜。', src: 'https://www.xiaohongshu.com/search_result?keyword=自律成长' },
+  { t: '普通人逆袭清单：下班后2小时决定差距', track: '成长', plan: '清单体 + 快节奏字幕：列出4-5件下班可做的小事（阅读/复盘/技能学习），每件事给"最小行动版本"。二创时加入自己的真实执行记录截图增加可信度。', src: 'https://www.douyin.com/search/下班后自律' },
+  { t: '我不自律，我只是把手机放远了（反焦虑自律）', track: '自律', plan: '反套路人设：不讲苦行自律，讲"低成本偷懒式自律"。钩子用反向观点引发评论区站队，二创时准备2-3个"环境设计"小技巧（手机放客厅/睡前书放枕头边）。', src: 'https://www.xiaohongshu.com/search_result?keyword=反焦虑自律' },
+  { t: '21天戒掉熬夜实测：皮肤/精力/情绪变化记录', track: '自律', plan: '记录型内容：Day1/7/14/21 四个节点对比画面，真实数据表。二创可替换为"戒糖/戒奶茶/每日步行8千步"等同结构挑战。', src: 'https://www.douyin.com/search/21天挑战' },
+  { t: '普通女生提升自己的10个低成本习惯', track: '成长', plan: '合集盘点体：每条3秒快切，字幕+口播同步。二创差异化：把10条砍到5条做深，每条给出"今天就能做"的落地动作。', src: 'https://www.xiaohongshu.com/search_result?keyword=提升自己' },
+  { t: '减脂期一日三餐怎么吃：实拍+热量标注', track: '减脂', plan: '美食实拍 + 角标热量数字，钩子"这样吃一个月掉X斤还不饿"。二创时用自己真实餐食，热量用APP截图佐证，结尾引导"要食谱扣1"。', src: 'https://www.douyin.com/search/减脂餐一日三餐' },
+  { t: '月瘦8斤的一周减脂餐备菜，打工人带饭攻略', track: '减脂', plan: '备菜流程流水账 + 周末批量处理，突出"省时间+低成本"。二创加入成本核算表（一周花XX元），打工人共鸣点强。', src: 'https://www.xiaohongshu.com/search_result?keyword=减脂备菜' },
+  { t: '体态改变对比：圆肩驼背30天自救', track: '减脂', plan: '前后对比图开场（视觉锤），中段拆解3个动作（靠墙站/弹力带扩胸/贴墙下蹲），每天5分钟门槛低。二创时记录自己真实侧影变化。', src: 'https://www.douyin.com/search/体态改善' },
+  { t: '工资3000也能存钱：我的工资到账四步分法', track: '存钱', plan: '干货口播 + 分账示意动画：到账先分四份（固定支出/储蓄/灵活/自我投资）。二创时晒自己的记账截图增强真实感。', src: 'https://www.xiaohongshu.com/search_result?keyword=工资理财' },
+  { t: '把日子过成升级打怪：我的习惯追踪手账', track: '自律', plan: '手账/表格展示 + 语音讲解游戏化逻辑（完成打勾=经验值）。二创可以做成电子表格模板分享，引导评论区"要模板"。', src: 'https://www.douyin.com/search/习惯追踪' },
+  { t: '记录式成长：用台账管理人生的第100天', track: '成长', plan: '周期复盘体：晒打卡/身体/存钱台账的变化曲线，讲"记录本身就会带来改变"。二创时用自己工作台的真实数据截图，系列化更新。', src: 'https://www.xiaohongshu.com/search_result?keyword=记录式成长' }
+];
+
+registerModule({
+  id: 'media', icon: '🎬', name: '自媒体',
+  render(el) {
+    const tab = ui.tab.media || 'idea';
+    el.innerHTML = pageHead('🎬', '自媒体', '灵感收集 · 爆款素材 · 选题库 · 数据复盘，一站式内容工作台') +
+      subtabs('media', [
+        { id: 'idea', name: '💡 每日灵感' },
+        { id: 'viral', name: '🔥 爆款素材' },
+        { id: 'topics', name: '📚 选题库' },
+        { id: 'review', name: '📊 内容复盘' }
+      ]) +
+      ({ idea: renderIdeaTab, viral: renderViralTab, topics: renderTopicsTab, review: renderReviewTab })[tab]();
+  }
+});
+
+/* ① 每日灵感 */
+function renderIdeaTab() {
+  const list = DB.get('ideas', []);
+  const doneN = list.filter(i => i.done).length;
+  return `
+  <div class="card">
+    <h3>💡 每日灵感来源<span class="cnt">完成 ${doneN}/${list.length}</span></h3>
+    <p class="hint">随手记录刷到的灵感、想拍的内容、冒出的点子，完成一条勾一条</p>
+    <div class="inline-form">
+      <input type="text" id="ideaText" placeholder="记录一条灵感，如：拍一期"我的自律工具分享"…">
+      <button class="btn btn-primary" data-act="addSimple" data-key="ideas" data-input="ideaText">＋ 记录</button>
+    </div>
+    <div class="rows" style="margin-top:12px">
+      ${list.length ? list.map(i => checkRow(i, 'ideas')).join('') : emptyBox('💡', '灵感本空空的，看到好点子随手记下来')}
+    </div>
+  </div>`;
+}
+
+/* ② 爆款素材 */
+function renderViralTab() {
+  const track = ui.filter.viralTrack || '全部';
+  const hist = DB.get('dissect_history', []);
+  const pool = VIRAL_POOL.filter(v => track === '全部' || v.track === track);
+  return `
+  <div class="card">
+    <h3>🔗 视频链接 AI 拆解</h3>
+    <p class="hint">粘贴抖音 / 小红书 / B站 等短视频链接，基于爆款内容通用逻辑输出拆解报告与原创改编思路</p>
+    <div class="inline-form">
+      <input type="url" id="viralUrl" placeholder="https:// 粘贴视频链接…">
+      <button class="btn btn-primary" data-act="dissectUrl">🔍 开始拆解</button>
+    </div>
+    <div id="dissectResult"></div>
+    ${hist.length ? `
+      <details class="fold" style="margin-top:12px">
+        <summary><span>🕘 历史拆解记录</span><span class="tag tag-gray">${hist.length} 条</span></summary>
+        <div class="fold-body">${hist.map((h, idx) => `
+          <div class="row">
+            <span class="row-text" style="font-size:13px">${esc(h.title || h.url)}<br><span style="font-size:11.5px;color:var(--choco-faint)">${shortDate(h.date)} · ${esc(h.platform)}</span></span>
+            <a class="btn btn-ghost btn-sm" href="${esc(h.url)}" target="_blank" rel="noopener">原视频 ↗</a>
+            <button class="del" data-act="delDissect" data-id="${esc(h.id)}">✕</button>
+          </div>`).join('')}</div>
+      </details>` : ''}
+  </div>
+  <div class="card">
+    <h3>🔥 热门赛道选题雷达<span class="cnt">成长 / 自律 / 减脂</span></h3>
+    <p class="hint">成长、自律、减脂、普通人成长赛道的近期热门方向，每条附二创方案与直达搜索入口，点击标题可搜索原内容</p>
+    <div class="chips">${['全部', '成长', '自律', '减脂'].map(t => `<button class="chip${track === t ? ' active' : ''}" data-act="filterViral" data-t="${t}">${t === '全部' ? '全部赛道' : t + '赛道'}</button>`).join('')}</div>
+    <div class="rows">
+      ${pool.map(v => `
+      <details class="fold" style="margin-bottom:8px">
+        <summary><span style="flex:1">${esc(v.t)}</span><span class="tag tag-olive">${v.track}</span></summary>
+        <div class="fold-body">
+          <div class="note-box"><b>🎬 二创方案</b><br>${esc(v.plan)}</div>
+          <a class="btn btn-ghost btn-sm" href="${esc(v.src)}" target="_blank" rel="noopener">🔍 查看原内容 / 同类热门 ↗</a>
+        </div>
+      </details>`).join('') || emptyBox('🔍', '该赛道暂无素材')}
+    </div>
+  </div>`;
+}
+ACTIONS.filterViral = el => { ui.filter.viralTrack = el.dataset.t; refresh(); };
+ACTIONS.dissectUrl = () => {
+  const input = $('#viralUrl'); const url = (input.value || '').trim();
+  if (!url) { toast('请先粘贴视频链接', 'err'); input.focus(); return; }
+  const lower = url.toLowerCase();
+  const platform = lower.includes('douyin') || lower.includes('iesdouyin') ? '抖音' : lower.includes('xiaohongshu') || lower.includes('xhslink') ? '小红书' : lower.includes('b23') || lower.includes('bilibili') ? 'B站' : lower.includes('kuaishou') ? '快手' : lower.includes('weishi') ? '微视' : '短视频平台';
+  const report = {
+    id: uid(), url, platform, date: today(),
+    title: `${platform}视频拆解`,
+    why: [
+      `【钩子】该平台爆款普遍前3秒亮出结果或反差（如变化对比、扎心提问），建议先确认这条视频的开头是否直接抛出"利益点/冲突点"`,
+      `【情绪】${platform}高完播内容多靠"身份代入感"（普通人/打工人/学生党）与"情绪价值"（被理解、被激励）驱动点赞`,
+      `【节奏】注意它的剪辑密度：爆款通常2-3秒一个信息点，字幕全程跟随口播，结尾留互动钩子引导评论`
+    ],
+    remake: [
+      `【改编方向】保留它的内容结构（钩子→干货/故事→互动），把素材替换成你自己成长/自律/减脂赛道上的真实经历，真实记录比表演更有说服力`,
+      `【差异化】在它的选题上叠加一个"你的独特视角"：例如它讲自律方法，你可以讲"自律失败后怎么补救"，切入点更少人做`,
+      `【落地动作】写脚本时先写结尾的互动提问，再倒推开头钩子；拍摄时前3秒不放片头、直接进入正题`
+    ]
+  };
+  const hist = DB.get('dissect_history', []);
+  hist.unshift(report); DB.set('dissect_history', hist.slice(0, 30));
+  $('#dissectResult').innerHTML = `
+    <div class="report">
+      <h4>🧪 ${report.title} · ${shortDate(report.date)}</h4>
+      <p style="font-size:13px;color:var(--choco-faint);margin-bottom:8px">🔥 爆火原因拆解</p>
+      <ul>${report.why.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p style="font-size:13px;color:var(--choco-faint);margin:10px 0 8px">✍️ 原创改编思路</p>
+      <ul>${report.remake.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <a class="btn btn-soft btn-sm" style="margin-top:10px" href="${esc(url)}" target="_blank" rel="noopener">▶ 打开原视频 ↗</a>
+    </div>`;
+  input.value = '';
+  toast('拆解完成，已存入历史记录 ✓');
+};
+ACTIONS.delDissect = el => {
+  DB.set('dissect_history', DB.get('dissect_history', []).filter(x => x.id !== el.dataset.id));
+  refresh(); toast('已删除');
+};
+
+/* ③ 选题库 */
+function renderTopicsTab() {
+  const list = DB.get('topics', []);
+  const TYPES = ['长期选题', '标题模板', '文案素材', '热门标签'];
+  return `
+  <div class="card">
+    <h3>📚 选题库<span class="cnt">${list.length} 条</span></h3>
+    <p class="hint">长期储备选题、标题模板、文案素材、热门标签，随时调取使用</p>
+    <div class="field"><label>分类</label>
+      <select id="topicType">${TYPES.map(t => `<option>${t}</option>`).join('')}</select>
+    </div>
+    <div class="field"><label>内容</label>
+      <textarea id="topicText" placeholder="粘贴或输入内容，如备选标题、金句文案、标签组合…"></textarea>
+    </div>
+    <button class="btn btn-primary" data-act="addTopic">＋ 存入选题库</button>
+    <div class="rows" style="margin-top:14px">
+      ${list.length ? list.map(i => `
+        <div class="row">
+          <span class="tag tag-olive" style="flex:none">${esc(i.type)}</span>
+          <span class="row-text" style="white-space:pre-wrap">${esc(i.text)}</span>
+          <button class="del" data-act="delItem" data-key="topics" data-id="${i.id}">✕</button>
+        </div>`).join('') : emptyBox('📚', '选题库空空的，把好选题存进来')}
+    </div>
+  </div>`;
+}
+ACTIONS.addTopic = () => {
+  const text = $('#topicText').value.trim();
+  if (!text) { toast('先输入内容哦', 'err'); return; }
+  const list = DB.get('topics', []);
+  list.unshift({ id: uid(), type: $('#topicType').value, text, date: today() });
+  DB.set('topics', list); refresh(); toast('已存入选题库 ✓');
+};
+
+/* ④ 内容复盘 */
+function renderReviewTab() {
+  const list = DB.get('reviews', []);
+  return `
+  <div class="card">
+    <h3>📊 录入作品数据</h3>
+    <p class="hint">发布作品后录入数据，系统依据短视频爆款逻辑自动诊断问题、给出成长自律赛道的优化动作</p>
+    <div class="form-grid">
+      <div class="field"><label>发布日期</label><input type="date" id="rvDate" value="${today()}"></div>
+      <div class="field"><label>作品标题/备注</label><input type="text" id="rvTitle" placeholder="如：早起挑战Day7"></div>
+      <div class="field"><label>播放量</label><input type="number" id="rvPlays" placeholder="0" min="0"></div>
+      <div class="field"><label>完播率（%）</label><input type="number" id="rvRate" placeholder="0-100" min="0" max="100"></div>
+      <div class="field"><label>点赞</label><input type="number" id="rvLikes" placeholder="0" min="0"></div>
+      <div class="field"><label>评论</label><input type="number" id="rvComments" placeholder="0" min="0"></div>
+      <div class="field"><label>转发</label><input type="number" id="rvShares" placeholder="0" min="0"></div>
+      <div class="field"><label>主要流量来源</label>
+        <select id="rvSource"><option>推荐流</option><option>关注页</option><option>搜索</option><option>转发分享</option><option>其他</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary" data-act="saveReview">💾 保存并生成诊断</button>
+  </div>
+  <div class="card">
+    <h3>🗂️ 复盘档案<span class="cnt">${list.length} 条 · 永久存档</span></h3>
+    ${list.length ? `<div class="rows">${list.map(r => `
+      <details class="fold" style="margin-bottom:8px">
+        <summary><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.title || '未命名作品')} · ${shortDate(r.date)}</span><span class="tag ${r.plays >= 1000 ? 'tag-olive' : 'tag-gray'}">播放 ${fmtNum(r.plays)}</span></summary>
+        <div class="fold-body">
+          <div class="stat-grid">
+            <div class="stat-cell"><div class="num">${fmtNum(r.plays)}</div><div class="lab">播放</div></div>
+            <div class="stat-cell"><div class="num">${r.rate}%</div><div class="lab">完播率</div></div>
+            <div class="stat-cell"><div class="num">${fmtNum(r.likes)}</div><div class="lab">点赞</div></div>
+            <div class="stat-cell"><div class="num">${fmtNum(r.comments)}</div><div class="lab">评论</div></div>
+            <div class="stat-cell"><div class="num">${fmtNum(r.shares)}</div><div class="lab">转发</div></div>
+            <div class="stat-cell"><div class="num" style="font-size:14px;padding-top:6px">${esc(r.source)}</div><div class="lab">流量来源</div></div>
+          </div>
+          <div class="advice-list">
+            ${diagnose(r).map(d => `<div class="advice-item"><span class="ico">${d[0] === 'ok' ? '🌱' : '⚡'}</span><span><b>${esc(d[1])}</b>${esc(d[2])}${d[3] ? '<br><span style="color:var(--choco-faint)">👉 ' + esc(d[3]) + '</span>' : ''}</span></div>`).join('')}
+          </div>
+          <div style="text-align:right"><button class="btn btn-danger btn-sm" data-act="delItem" data-key="reviews" data-id="${r.id}">删除记录</button></div>
+        </div>
+      </details>`).join('')}</div>` : emptyBox('📊', '还没有复盘记录，发布作品后来录入第一组数据吧')}
+  </div>`;
+}
+const fmtNum = n => n >= 10000 ? (n / 10000).toFixed(1) + 'w' : String(n ?? 0);
+function diagnose(r) {
+  const tips = [];
+  const likeRate = r.plays ? r.likes / r.plays : 0;
+  const cmtRatio = r.likes ? r.comments / r.likes : 0;
+  const shrRatio = r.likes ? r.shares / r.likes : 0;
+  if (r.rate && r.rate < 30) tips.push(['fix', '完播率偏低', '大部分观众在前1/3流失，问题通常出在前3秒钩子不够强。', '成长自律赛道落地：开场直接亮结果反差，如"坚持30天早起，我只改变了这一件事"；删掉片头和铺垫，第1帧即入正题']);
+  else if (r.rate && r.rate < 55) tips.push(['fix', '完播率有提升空间', '中段节奏可能拖沓，观众看完开头就划走了。', '落地：每5-8秒设置一个信息点或画面变化；用"接下来更关键"式过渡句留住观众']);
+  if (r.plays && r.rate && likeRate < .03) tips.push(['fix', '点赞率偏低', '内容缺少让观众"顺手点赞"的情绪触发点。', '落地：在干货点后加一句"这个方法值得你点个赞"；或制造高共鸣金句，如"自律不是狠，是会哄自己"']);
+  if (r.likes && cmtRatio < .05) tips.push(['fix', '评论互动稀少', '视频结尾缺少互动引导，观众看完即走。', '落地：结尾设置低门槛提问，如"你坚持最久的一件事是什么？评论区聊聊"；置顶一条自问自答带节奏']);
+  if (r.likes && shrRatio < .1) tips.push(['fix', '转发偏低', '内容利他性或情绪共鸣不足，观众缺少转发的理由。', '落地：补充"转给需要的人"式干货清单（如减脂食谱、自律模板），或强化身份共鸣点']);
+  if (r.plays && r.plays < 500 && r.source === '推荐流') tips.push(['fix', '流量池未突破', '初始推流数据不达标，系统没有推入下一级流量池。', '落地：优化封面（大字标题+人物表情）、带准赛道标签（#自律 #成长 #减脂）、固定时间发布（通勤7-9点/睡前21-23点）']);
+  if (!tips.length) tips.push(['ok', '数据健康，保持节奏', '各项指标均在健康区间，说明内容结构跑通了。', '落地：把这条作品的钩子、结构沉淀为可复用模板，同系列持续更新']);
+  return tips;
+}
+ACTIONS.saveReview = () => {
+  const r = {
+    id: uid(), date: $('#rvDate').value || today(), title: $('#rvTitle').value.trim(),
+    plays: num($('#rvPlays').value), rate: num($('#rvRate').value),
+    likes: num($('#rvLikes').value), comments: num($('#rvComments').value),
+    shares: num($('#rvShares').value), source: $('#rvSource').value
+  };
+  if (!r.plays && !r.title) { toast('至少填写标题或播放量', 'err'); return; }
+  const list = DB.get('reviews', []); list.unshift(r); DB.set('reviews', list);
+  refresh(); toast('已保存，诊断建议已生成 ✓');
+};
+
+/* ============ 3. 📚 备考计划 ============ */
+registerModule({
+  id: 'exam', icon: '📚', name: '备考计划',
+  render(el) {
+    const tab = ui.tab.exam || 'plan';
+    const exam = DB.get('examInfo', {});
+    let cd = '';
+    if (exam.date) {
+      const d = daysBetween(today(), exam.date);
+      cd = d > 0 ? `<div class="big-day"><div class="d">${d}</div><div class="l">距离考试（${cnDate(exam.date)}）还有 · 天</div></div>`
+        : d === 0 ? `<div class="big-day"><div class="d">今天</div><div class="l">就是考试日，稳住，你可以的！</div></div>`
+        : `<div class="big-day"><div class="d" style="color:var(--choco-faint)">${-d}</div><div class="l">考试已过去 · 天（${cnDate(exam.date)}）</div></div>`;
+    } else {
+      cd = `<div class="big-day"><div class="d" style="font-size:30px;color:var(--choco-faint)">📅</div><div class="l">先设置目标考试日期，自动生成倒计时</div></div>`;
+    }
+    el.innerHTML = pageHead('📚', '备考计划', '考试倒计时 · 学习计划 · 学习记录 · 知识点笔记收纳') +
+      `<div class="card">${cd}
+        <div class="inline-form" style="margin-top:12px">
+          <input type="date" id="examDate" value="${exam.date || ''}" data-chg="save" data-save="examInfo" data-path="date" data-after="examDateChanged" style="flex:1;min-width:180px">
+          <button class="btn btn-ghost" data-act="clearExamDate">清除日期</button>
+        </div>
+      </div>` +
+      subtabs('exam', [{ id: 'plan', name: '📋 学习计划' }, { id: 'record', name: '✏️ 学习记录' }, { id: 'note', name: '📝 知识点笔记' }]) +
+      ({ plan: renderExamPlans, record: renderExamRecords, note: renderExamNotes })[tab]();
+  }
+});
+window.examDateChanged = () => {
+  const exam = DB.get('examInfo', {});
+  const card = $('#page .card .big-day');
+  if (card && exam.date) {
+    const d = daysBetween(today(), exam.date);
+    card.innerHTML = d > 0 ? `<div class="d">${d}</div><div class="l">距离考试（${cnDate(exam.date)}）还有 · 天</div>` : `<div class="d" style="font-size:34px">⚡</div><div class="l">${d === 0 ? '今天就是考试日！' : '考试已结束，开启新征程'}</div>`;
+  }
+};
+ACTIONS.clearExamDate = () => { const rec = DB.get('examInfo', {}); delete rec.date; DB.set('examInfo', rec); refresh(); };
+
+function renderExamPlans() {
+  const list = DB.get('examPlans', []);
+  return `<div class="card">
+    <h3>📋 学习计划<span class="cnt">待完成 ${list.filter(i => !i.done).length}</span></h3>
+    <div class="inline-form">
+      <input type="text" id="epText" placeholder="添加学习任务，如：过完第3章+刷50题…">
+      <button class="btn btn-primary" data-act="addSimple" data-key="examPlans" data-input="epText">＋ 添加</button>
+    </div>
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => checkRow(i, 'examPlans')).join('') : emptyBox('📋', '没有预设任务，按自己的节奏自由规划')}</div>
+  </div>`;
+}
+function renderExamRecords() {
+  const list = DB.get('examRecords', []);
+  return `<div class="card">
+    <h3>✏️ 学习记录<span class="cnt">${list.length} 条</span></h3>
+    <div class="inline-form" style="flex-wrap:wrap">
+      <input type="date" id="erDate" value="${today()}" style="max-width:165px">
+      <input type="text" id="erText" placeholder="今天学了什么，如：二刷错题本30题…" style="flex:1;min-width:180px">
+      <button class="btn btn-primary" data-act="addExamRecord">＋ 记录</button>
+    </div>
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => `
+      <div class="row"><span class="tag tag-gray" style="flex:none">${shortDate(i.date)}</span>
+      <span class="row-text">${esc(i.text)}</span>
+      <button class="del" data-act="delItem" data-key="examRecords" data-id="${i.id}">✕</button></div>`).join('') : emptyBox('✏️', '记录下每一天的学习轨迹')}
+  </div>`;
+}
+ACTIONS.addExamRecord = () => {
+  const text = $('#erText').value.trim();
+  if (!text) { toast('先输入学习内容哦', 'err'); return; }
+  const list = DB.get('examRecords', []);
+  list.unshift({ id: uid(), date: $('#erDate').value || today(), text });
+  DB.set('examRecords', list); refresh(); toast('已记录 ✓');
+};
+function renderExamNotes() {
+  const list = DB.get('examNotes', []);
+  return `<div class="card">
+    <h3>📝 知识点笔记<span class="cnt">${list.length} 篇</span></h3>
+    <div class="field"><label>标题</label><input type="text" id="enTitle" placeholder="知识点名称，如：马原·矛盾分析法"></div>
+    <div class="field"><label>内容</label><textarea id="enBody" placeholder="收纳你的知识点、口诀、易错点…"></textarea></div>
+    <button class="btn btn-primary" data-act="addExamNote">＋ 收纳笔记</button>
+    <div class="rows" style="margin-top:14px">${list.length ? list.map(i => `
+      <details class="fold" style="margin-bottom:8px">
+        <summary><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(i.title)}</span><span class="tag tag-gray">${shortDate(i.date)}</span></summary>
+        <div class="fold-body"><p style="white-space:pre-wrap;font-size:14px">${esc(i.body)}</p>
+        <div style="text-align:right"><button class="btn btn-danger btn-sm" data-act="delItem" data-key="examNotes" data-id="${i.id}">删除</button></div></div>
+      </details>`).join('') : emptyBox('📝', '把零散的知识点收纳进来')}
+  </div>`;
+}
+ACTIONS.addExamNote = () => {
+  const title = $('#enTitle').value.trim(), body = $('#enBody').value.trim();
+  if (!title) { toast('给笔记起个标题吧', 'err'); return; }
+  const list = DB.get('examNotes', []);
+  list.unshift({ id: uid(), title, body, date: today() });
+  DB.set('examNotes', list); refresh(); toast('已收纳 ✓');
+};
+
+/* ============ 4. 💡 技能学习 ============ */
+registerModule({
+  id: 'skill', icon: '💡', name: '技能学习',
+  render(el) {
+    const list = DB.get('skills', []);
+    const CATS = ['视频拍摄', '剪辑技巧', 'AI工具', '兴趣技能'];
+    const doing = list.filter(i => !i.done), done = list.filter(i => i.done);
+    const skillCard = i => `
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+          <b style="font-size:15.5px">${esc(i.name)}</b>
+          <span class="tag tag-olive">${esc(i.cat)}</span>
+          ${i.done ? '<span class="tag tag-olive">🎉 已掌握</span>' : ''}
+          <span style="flex:1"></span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--choco-soft);cursor:pointer">完成<input type="checkbox" class="chk" ${i.done ? 'checked' : ''} data-chg="chkField" data-key="skills" data-id="${i.id}"></label>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="flex:1">${progressBar(i.progress || 0)}</div>
+          <span class="sk-pct" style="font-size:12.5px;color:var(--olive-deep);font-weight:700;min-width:38px;text-align:right">${i.progress || 0}%</span>
+        </div>
+        <input type="range" min="0" max="100" step="5" value="${i.progress || 0}" data-chg="rangeField" data-key="skills" data-id="${i.id}" style="width:100%;accent-color:var(--olive);margin-bottom:10px">
+        ${i.link ? `<a href="${esc(i.link)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-bottom:10px">🔗 收藏的教程链接 ↗</a>` : ''}
+        <textarea placeholder="学习笔记 / 心得（自动保存）" data-chg="textField" data-key="skills" data-id="${i.id}" data-path="note" style="min-height:70px;font-size:14px">${esc(i.note || '')}</textarea>
+        <div style="text-align:right;margin-top:8px"><button class="btn btn-danger btn-sm" data-act="delItem" data-key="skills" data-id="${i.id}">删除该技能</button></div>
+      </div>`;
+    el.innerHTML = pageHead('💡', '技能学习', '视频拍摄 · 剪辑技巧 · AI工具 · 兴趣技能，学习资料永久保存') + `
+      <div class="card">
+        <h3>➕ 新增技能</h3>
+        <div class="form-grid">
+          <div class="field"><label>技能名称</label><input type="text" id="skName" placeholder="如：剪映进阶运镜"></div>
+          <div class="field"><label>分类</label><select id="skCat">${CATS.map(c => `<option>${c}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>教程链接（选填）</label><input type="url" id="skLink" placeholder="https:// 收藏正在学的教程"></div>
+        <button class="btn btn-primary" data-act="addSkill">＋ 开始学习</button>
+      </div>
+      ${doing.length ? `<div class="block"><h3 style="margin-bottom:12px">🔥 学习中</h3>${doing.map(skillCard).join('')}</div>` : ''}
+      ${done.length ? `<div class="block"><h3 style="margin-bottom:12px">🏆 已掌握</h3>${done.map(skillCard).join('')}</div>` : ''}
+      ${!list.length ? emptyBox('💡', '还没有在学习技能，添加一个开始吧') : ''}`;
+  }
+});
+CHANGES.chkField = el => {
+  const list = DB.get(el.dataset.key, []); const it = list.find(x => x.id === el.dataset.id);
+  if (it) { it.done = el.checked; DB.set(el.dataset.key, list); refresh(); if (el.checked) toast('恭喜掌握新技能 🎉'); }
+};
+CHANGES.rangeField = el => {
+  const list = DB.get(el.dataset.key, []); const it = list.find(x => x.id === el.dataset.id);
+  if (it) {
+    it.progress = num(el.value); DB.set(el.dataset.key, list);
+    const card = el.closest('.card');
+    const bar = card.querySelector('.progress i'), pct = card.querySelector('.sk-pct');
+    if (bar) bar.style.width = it.progress + '%';
+    if (pct) pct.textContent = it.progress + '%';
+  }
+};
+CHANGES.textField = el => {
+  const list = DB.get(el.dataset.key, []); const it = list.find(x => x.id === el.dataset.id);
+  if (it) { it[el.dataset.path] = el.value; DB.set(el.dataset.key, list); }
+};
+ACTIONS.addSkill = () => {
+  const name = $('#skName').value.trim();
+  if (!name) { toast('给技能起个名字吧', 'err'); return; }
+  const list = DB.get('skills', []);
+  list.unshift({ id: uid(), name, cat: $('#skCat').value, link: $('#skLink').value.trim(), note: '', progress: 0, done: false, date: today() });
+  DB.set('skills', list); refresh(); toast('开始学习之旅 ✓');
+};
+
+/* ============ 5. 🏃 身体管理 ============ */
+registerModule({
+  id: 'body', icon: '🏃', name: '身体管理',
+  render(el) {
+    const tab = ui.tab.body || 'figure';
+    el.innerHTML = pageHead('🏃', '身体管理', '体态 · 饮水 · 生理期 · 饮食热量 · 运动，长期留存身体数据') +
+      renderBodyOverview() +
+      subtabs('body', [
+        { id: 'figure', name: '🧘 体态记录' }, { id: 'water', name: '💧 饮水' },
+        { id: 'period', name: '🌸 生理期' }, { id: 'diet', name: '🥗 饮食热量' }, { id: 'sport', name: '🏃‍♀️ 运动' }
+      ]) +
+      ({ figure: renderFigureTab, water: renderWaterTab, period: renderPeriodTab, diet: renderDietTab, sport: renderSportTab })[tab]();
+  }
+});
+function latestWeight() {
+  const w = DB.get('figure', []).filter(i => i.weight).sort((a, b) => daysBetween(a.date, b.date));
+  return w.length ? num(w[w.length - 1].weight) : 55;
+}
+function renderBodyOverview() {
+  const t = today();
+  const kcalIn = DB.get('diet', []).filter(i => i.date === t).reduce((s, i) => s + num(i.total), 0);
+  const kcalOut = DB.get('sports', []).filter(i => i.date === t).reduce((s, i) => s + num(i.kcal), 0);
+  const diff = kcalIn - kcalOut;
+  let tip;
+  if (!kcalIn && !kcalOut) tip = '今天还没有饮食与运动数据，记录后自动核算热量差';
+  else if (diff > 0) tip = `今日摄入比消耗多 <b>${diff}</b> kcal，想减脂的话还可以再消耗约 ${diff} kcal（约快走 ${Math.round(diff / 3.5 / 55 * 60)} 分钟）`;
+  else if (diff < 0) tip = `今日消耗大于摄入 <b>${-diff}</b> kcal，形成了热量缺口，可适当补充摄入约 ${-diff} kcal`;
+  else tip = '今日摄入与消耗持平，维持得刚刚好';
+  return `<div class="card">
+    <h3>⚖️ 今日热量天平<span class="cnt">${shortDate(t)}</span></h3>
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="num">${kcalIn}</div><div class="lab">摄入 kcal</div></div>
+      <div class="stat-cell"><div class="num">${kcalOut}</div><div class="lab">消耗 kcal</div></div>
+      <div class="stat-cell"><div class="num" style="color:${diff > 0 ? 'var(--warn)' : 'var(--olive-deep)'}">${diff > 0 ? '+' + diff : diff}</div><div class="lab">热量差值</div></div>
+    </div>
+    <div class="note-box" style="margin-top:12px">🧮 ${tip}</div>
+  </div>`;
+}
+
+/* ① 体态记录 */
+function renderFigureTab() {
+  const list = DB.get('figure', []).sort((a, b) => daysBetween(a.date, b.date));
+  let compare = '';
+  if (list.length >= 2) {
+    const a = list[list.length - 1], b = list[list.length - 2];
+    const cmp = [['体重', 'weight', 'kg'], ['胸围', 'bust', 'cm'], ['腰围', 'waist', 'cm'], ['臀围', 'hip', 'cm']].map(([lab, k, u]) => {
+      const d = num(a[k]) - num(b[k]);
+      if (!num(a[k]) && !num(b[k])) return '';
+      return `<div class="stat-cell"><div class="num" style="font-size:17px">${d > 0 ? '▲' : d < 0 ? '▼' : '—'} ${Math.abs(d) || 0}</div><div class="lab">${lab} (${u})</div></div>`;
+    }).join('');
+    compare = `<div class="card">
+      <h3>📸 最近两期对比<span class="cnt">${shortDate(b.date)} → ${shortDate(a.date)}</span></h3>
+      <div class="stat-grid">${cmp}</div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        ${b.img ? `<div style="text-align:center"><img class="thumb" src="${b.img}" style="width:130px;height:160px" data-act="lightbox" data-src="${b.img}"><div class="hint" style="margin:4px 0 0">${shortDate(b.date)}</div></div>` : ''}
+        ${a.img ? `<div style="text-align:center"><img class="thumb" src="${a.img}" style="width:130px;height:160px" data-act="lightbox" data-src="${a.img}"><div class="hint" style="margin:4px 0 0">${shortDate(a.date)}</div></div>` : ''}
+      </div>
+    </div>`;
+  }
+  return `${compare}
+  <div class="card">
+    <h3>➕ 录入体态数据</h3>
+    <div class="form-grid-3">
+      <div class="field"><label>日期</label><input type="date" id="fgDate" value="${today()}"></div>
+      <div class="field"><label>体重 kg</label><input type="number" id="fgWeight" step="0.1" placeholder="55.0"></div>
+      <div class="field"><label>胸围 cm</label><input type="number" id="fgBust" step="0.1" placeholder="0"></div>
+      <div class="field"><label>腰围 cm</label><input type="number" id="fgWaist" step="0.1" placeholder="0"></div>
+      <div class="field"><label>臀围 cm</label><input type="number" id="fgHip" step="0.1" placeholder="0"></div>
+      <div class="field"><label>体态照片（选填）</label><input type="file" id="fgImg" accept="image/*" style="padding:9px 12px;font-size:13px"></div>
+    </div>
+    <button class="btn btn-primary" data-act="saveFigure">💾 保存记录</button>
+  </div>
+  <div class="card">
+    <h3>🗂️ 体态历史<span class="cnt">${list.length} 次 · 图文存档</span></h3>
+    ${list.length ? `<div class="rows">${list.slice().reverse().map(i => `
+      <div class="row" style="flex-wrap:wrap">
+        <span class="tag tag-gray" style="flex:none">${shortDate(i.date)}</span>
+        <span class="row-extra" style="max-width:100%;flex:1;text-align:left;font-size:13px">
+          ${i.weight ? '⚖️ ' + i.weight + 'kg ' : ''}${i.bust ? '🫁 ' + i.bust + ' ' : ''}${i.waist ? '📏 腰' + i.waist + ' ' : ''}${i.hip ? '🍑 ' + i.hip : ''}
+        </span>
+        ${i.img ? `<img class="thumb" src="${i.img}" data-act="lightbox" data-src="${i.img}">` : ''}
+        <button class="del" data-act="delItem" data-key="figure" data-id="${i.id}">✕</button>
+      </div>`).join('')}</div>` : emptyBox('🧘', '记录第一次体态数据，坚持对比看见变化')}
+  </div>`;
+}
+ACTIONS.lightbox = el => lightbox(el.dataset.src);
+ACTIONS.saveFigure = async () => {
+  const date = $('#fgDate').value || today();
+  const rec = { id: uid(), date, weight: $('#fgWeight').value, bust: $('#fgBust').value, waist: $('#fgWaist').value, hip: $('#fgHip').value };
+  if (!rec.weight && !rec.bust && !rec.waist && !rec.hip && !$('#fgImg').files[0]) { toast('至少填写一项数据或上传照片', 'err'); return; }
+  const f = $('#fgImg').files[0];
+  if (f) { try { rec.img = await compressImage(f); } catch(e) { toast('照片读取失败', 'err'); } }
+  const list = DB.get('figure', []); list.push(rec); DB.set('figure', list);
+  refresh(); toast('体态记录已保存 ✓');
+};
+
+/* ② 饮水记录 */
+function renderWaterTab() {
+  const goal = num(DB.get('waterGoal', 2000)) || 2000;
+  const log = DB.get('waterLog', {});
+  const t = today();
+  const cur = num(log[t]) || 0;
+  const okFlag = cur >= goal;
+  const days = Object.keys(log).sort((a, b) => daysBetween(a, b)).slice(0, 7);
+  const maxV = Math.max(goal, ...days.map(d => num(log[d])));
+  return `<div class="card">
+    <h3>💧 今日饮水<span class="cnt">${okFlag ? '已达标 🎉' : '目标 ' + goal + 'ml'}</span></h3>
+    <div class="big-day"><div class="d" style="color:${okFlag ? 'var(--olive)' : 'var(--choco)'}">${cur}<span style="font-size:18px;font-weight:600;color:var(--choco-faint)"> / ${goal} ml</span></div>
+    <div class="l">${okFlag ? '今日饮水达标，好样的' : `还差 ${goal - cur} ml 达标`}</div></div>
+    ${progressBar(cur / goal * 100)}
+    <div class="chips" style="margin-top:14px">
+      <button class="chip" data-act="waterAdd" data-v="150">+150 ☕</button>
+      <button class="chip" data-act="waterAdd" data-v="250">+250 🥛</button>
+      <button class="chip" data-act="waterAdd" data-v="500">+500 🍶</button>
+      <button class="chip" data-act="waterReset">清零</button>
+    </div>
+    <div class="inline-form">
+      <input type="number" id="waterCustom" placeholder="自定义毫升数" min="1">
+      <button class="btn btn-soft" data-act="waterAddCustom">＋ 记录</button>
+    </div>
+    <div class="field" style="margin-top:14px"><label>每日目标饮水量（ml）</label>
+      <input type="number" value="${goal}" data-chg="waterGoal">
+    </div>
+  </div>
+  ${days.length ? `<div class="card"><h3>📈 近 7 天饮水</h3>
+    <div style="display:flex;align-items:flex-end;gap:10px;height:110px;padding:0 4px">
+      ${days.map(d => { const v = num(log[d]); return `<div style="flex:1;text-align:center"><div style="font-size:10.5px;color:var(--choco-faint);margin-bottom:4px">${v}</div><div style="height:${Math.max(6, v / maxV * 72)}px;background:${v >= goal ? 'var(--olive)' : 'var(--olive-soft)'};border-radius:6px;opacity:.85"></div><div style="font-size:10.5px;color:var(--choco-faint);margin-top:4px">${shortDate(d)}</div></div>`; }).join('')}
+    </div></div>` : ''}`;
+}
+ACTIONS.waterAdd = el => {
+  const log = DB.get('waterLog', {}); const t = today();
+  log[t] = num(log[t]) + num(el.dataset.v); DB.set('waterLog', log); refresh();
+};
+ACTIONS.waterAddCustom = () => {
+  const v = num($('#waterCustom').value);
+  if (v <= 0) { toast('输入有效毫升数', 'err'); return; }
+  const log = DB.get('waterLog', {}); const t = today();
+  log[t] = num(log[t]) + v; DB.set('waterLog', log); refresh(); toast('喝水 + ' + v + 'ml 💧');
+};
+ACTIONS.waterReset = () => confirmBox('清零今天的饮水记录？', () => { const log = DB.get('waterLog', {}); delete log[today()]; DB.set('waterLog', log); refresh(); });
+CHANGES.waterGoal = el => { DB.set('waterGoal', num(el.value) || 2000); refresh(); toast('目标已更新 💧'); };
+
+/* ③ 生理期记录 */
+function renderPeriodTab() {
+  const list = DB.get('periods', []).sort((a, b) => daysBetween(a.start, b.start));
+  let predict = '';
+  const starts = list.map(p => p.start);
+  if (starts.length >= 2) {
+    const gaps = [];
+    for (let i = 1; i < starts.length; i++) gaps.push(daysBetween(starts[i - 1], starts[i]));
+    const avg = Math.round(gaps.reduce((s, g) => s + g, 0) / gaps.length);
+    if (avg >= 15 && avg <= 60) {
+      const next = addDays(starts[starts.length - 1], avg);
+      const left = daysBetween(today(), next);
+      predict = `<div class="note-box" style="margin-bottom:14px">🔮 基于最近 ${gaps.length} 次周期（平均 ${avg} 天）预测：下次经期约为 <b>${cnDate(next)}</b>${left > 0 ? `，还有 <b>${left}</b> 天` : '，可能已经到了哦'}</div>`;
+    }
+  }
+  return `<div class="card">
+    <h3>🌸 记录经期</h3>
+    <div class="form-grid">
+      <div class="field"><label>开始日期</label><input type="date" id="pdStart" value="${today()}"></div>
+      <div class="field"><label>结束日期（结束再填）</label><input type="date" id="pdEnd"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addPeriod">＋ 保存经期</button>
+    <div class="rows" style="margin-top:14px">${list.length ? list.slice().reverse().map((p, idx) => {
+      const realIdx = list.length - 1 - idx;
+      const len = p.end ? daysBetween(p.start, p.end) + 1 : null;
+      const gap = realIdx > 0 ? daysBetween(list[realIdx - 1].start, p.start) : null;
+      return `<div class="row">
+        <span style="flex:none">🌸</span>
+        <span class="row-text">${shortDate(p.start)} → ${p.end ? shortDate(p.end) : '<span class="tag tag-olive">进行中</span>'}</span>
+        <span class="row-extra">${len ? '经期 ' + len + ' 天' : ''} ${gap ? '· 周期 ' + gap + ' 天' : ''}</span>
+        <button class="del" data-act="delItem" data-key="periods" data-id="${p.id}">✕</button>
+      </div>`;
+    }).join('') : emptyBox('🌸', '记录经期起止，系统帮你预判下次时间')}
+    </div>
+  </div>${predict}`;
+}
+ACTIONS.addPeriod = () => {
+  const start = $('#pdStart').value, end = $('#pdEnd').value;
+  if (!start) { toast('选择开始日期', 'err'); return; }
+  if (end && daysBetween(start, end) < 0) { toast('结束日期不能早于开始日期', 'err'); return; }
+  const list = DB.get('periods', []);
+  list.push({ id: uid(), start, end: end || '' });
+  DB.set('periods', list); refresh(); toast('经期已记录 ✓');
+};
+
+/* ④ 饮食热量 */
+function renderDietTab() {
+  const list = DB.get('diet', []).sort((a, b) => daysBetween(a.date, b.date));
+  const byDate = {};
+  list.forEach(i => { (byDate[i.date] = byDate[i.date] || []).push(i); });
+  const keys = Object.keys(byDate);
+  return `<div class="card">
+    <h3>🥗 饮食规划<span class="hint" style="margin:0 0 0 8px">计划次日餐食，自动核算摄入热量</span></h3>
+    <div class="form-grid-3">
+      <div class="field"><label>日期</label><input type="date" id="dtDate" value="${tomorrow()}"></div>
+      <div class="field"><label>餐次</label><select id="dtMeal"><option>早餐</option><option>午餐</option><option>晚餐</option><option>加餐</option></select></div>
+      <div class="field"><label>食材/餐食</label><input type="text" id="dtName" placeholder="如：鸡胸肉"></div>
+      <div class="field"><label>分量（g）</label><input type="number" id="dtGram" placeholder="150"></div>
+      <div class="field"><label>每100g热量（留空自动查表）</label><input type="number" id="dtKcal" placeholder="如 133"></div>
+      <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" data-act="addDiet">＋ 添加食材</button></div>
+    </div>
+    <p class="hint">内置常见食材热量表（米饭、鸡胸肉、西兰花等），查不到的食材手动填每100g热量即可</p>
+  </div>
+  ${keys.length ? keys.map(d => `
+    <div class="card">
+      <h3>📅 ${cnDate(d)}<span class="cnt">共 ${byDate[d].reduce((s, i) => s + num(i.total), 0)} kcal</span></h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>餐次</th><th>食材</th><th>分量</th><th>热量</th><th></th></tr></thead>
+        <tbody>${byDate[d].map(i => `<tr><td>${esc(i.meal)}</td><td>${esc(i.name)}</td><td>${i.gram}g</td><td><b>${i.total}</b> kcal</td><td style="text-align:right"><button class="del" data-act="delItem" data-key="diet" data-id="${i.id}">✕</button></td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>`).join('') : emptyBox('🥗', '规划明天吃什么，自动算热量')}
+  `;
+}
+ACTIONS.addDiet = () => {
+  const name = $('#dtName').value.trim();
+  const gram = num($('#dtGram').value);
+  if (!name || gram <= 0) { toast('填写食材名称和分量', 'err'); return; }
+  const per100 = num($('#dtKcal').value) || lookupKcal(name);
+  if (!per100) { toast('暂无「' + name + '」热量数据，请手动填写每100g热量', 'err'); return; }
+  const list = DB.get('diet', []);
+  list.push({ id: uid(), date: $('#dtDate').value || tomorrow(), meal: $('#dtMeal').value, name, gram, per100, total: Math.round(per100 * gram / 100) });
+  DB.set('diet', list); refresh(); toast(`已添加：约 ${Math.round(per100 * gram / 100)} kcal ✓`);
+};
+
+/* ⑤ 运动记录 */
+function renderSportTab() {
+  const list = DB.get('sports', []).sort((a, b) => daysBetween(a.date, b.date));
+  const w = latestWeight();
+  return `<div class="card">
+    <h3>🏃‍♀️ 运动记录<span class="cnt">当前体重 ${w}kg · 自动估算消耗</span></h3>
+    <div class="form-grid-3">
+      <div class="field"><label>日期</label><input type="date" id="spDate" value="${today()}"></div>
+      <div class="field"><label>运动类型</label><select id="spType">${Object.keys(SPORTS).map(k => `<option>${k}</option>`).join('')}</select></div>
+      <div class="field"><label>时长（分钟）</label><input type="number" id="spMin" placeholder="30"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addSport">＋ 记录运动</button>
+  </div>
+  <div class="card">
+    <h3>🗂️ 运动历史</h3>
+    ${list.length ? `<div class="rows">${list.slice().reverse().map(i => `
+      <div class="row">
+        <span class="tag tag-gray" style="flex:none">${shortDate(i.date)}</span>
+        <span class="row-text">${esc(i.type)} · ${i.min} 分钟</span>
+        <span class="row-extra" style="color:var(--olive-deep);font-weight:700">≈ ${i.kcal} kcal</span>
+        <button class="del" data-act="delItem" data-key="sports" data-id="${i.id}">✕</button>
+      </div>`).join('')}</div>` : emptyBox('🏃‍♀️', '记录每一次挥洒的汗水')}
+  </div>`;
+}
+ACTIONS.addSport = () => {
+  const min = num($('#spMin').value);
+  if (min <= 0) { toast('填写运动时长', 'err'); return; }
+  const type = $('#spType').value;
+  const kcal = Math.round(SPORTS[type] * latestWeight() * min / 60);
+  const list = DB.get('sports', []);
+  list.push({ id: uid(), date: $('#spDate').value || today(), type, min, kcal });
+  DB.set('sports', list); refresh(); toast(`消耗约 ${kcal} kcal，已记录 ✓`);
+};
+
+/* ============ 6. 🗃️ 物品管理 ============ */
+registerModule({
+  id: 'items', icon: '🗃️', name: '物品管理',
+  render(el) {
+    const tab = ui.tab.items || 'stock';
+    el.innerHTML = pageHead('🗃️', '物品管理', '库存余量 · 采购清单 · 耗材更换提醒，拒绝囤货遗忘') +
+      subtabs('items', [{ id: 'stock', name: '📦 物品库存' }, { id: 'shop', name: '🛒 采购清单' }, { id: 'consume', name: '⏰ 耗材更换提醒' }]) +
+      ({ stock: renderStockTab, shop: renderShopTab, consume: renderConsumeTab })[tab]();
+  }
+});
+function renderStockTab() {
+  const list = DB.get('stock', []).sort((a, b) => num(a.left) - num(b.left));
+  return `<div class="card">
+    <h3>📦 物品库存<span class="cnt">${list.length} 件</span></h3>
+    <p class="hint">记录护肤品、日用品、食材等余量，每次消耗一键更新，余量不足自动排前</p>
+    <div class="form-grid-3">
+      <div class="field"><label>物品名称</label><input type="text" id="stName" placeholder="如：水乳"></div>
+      <div class="field"><label>分类</label><select id="stCat"><option>护肤品</option><option>日用品</option><option>食材</option><option>其他</option></select></div>
+      <div class="field"><label>购入日期</label><input type="date" id="stDate" value="${today()}"></div>
+      <div class="field"><label>现有余量</label><input type="number" id="stLeft" placeholder="1"></div>
+      <div class="field"><label>单位</label><input type="text" id="stUnit" placeholder="瓶/盒/袋"></div>
+      <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" data-act="addStock">＋ 入库</button></div>
+    </div>
+  </div>
+  <div class="card">
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>物品</th><th>分类</th><th>购入</th><th>余量</th><th>使用记录</th><th></th></tr></thead>
+      <tbody>${list.map(i => `<tr>
+        <td><b>${esc(i.name)}</b></td><td>${esc(i.cat)}</td><td>${shortDate(i.date)}</td>
+        <td><span class="tag ${num(i.left) <= 1 ? 'tag-danger' : 'tag-olive'}">${i.left} ${esc(i.unit || '')}</span></td>
+        <td style="font-size:12px;color:var(--choco-faint);max-width:180px">${esc((i.logs || []).slice(-2).join('；') || '—')}</td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn btn-soft btn-sm" data-act="useStock" data-id="${i.id}">消耗 -1</button>
+          <button class="del" data-act="delItem" data-key="stock" data-id="${i.id}">✕</button>
+        </td></tr>`).join('')}</tbody>
+    </table></div>` : emptyBox('📦', '还没有入库物品，先登记一件吧')}
+  </div>`;
+}
+ACTIONS.addStock = () => {
+  const name = $('#stName').value.trim();
+  if (!name) { toast('填写物品名称', 'err'); return; }
+  const list = DB.get('stock', []);
+  list.push({ id: uid(), name, cat: $('#stCat').value, date: $('#stDate').value || today(), left: num($('#stLeft').value) || 1, unit: $('#stUnit').value.trim() || '件', logs: [] });
+  DB.set('stock', list); refresh(); toast('已入库 ✓');
+};
+ACTIONS.useStock = el => {
+  const list = DB.get('stock', []); const it = list.find(x => x.id === el.dataset.id);
+  if (!it) return;
+  it.left = num(it.left) - 1;
+  it.logs = it.logs || [];
+  it.logs.push(shortDate(today()) + ' 消耗1次');
+  if (it.left <= 0) { toast('「' + it.name + '」已用完，建议加入采购清单 🛒'); }
+  DB.set('stock', list); refresh();
+};
+function renderShopTab() {
+  const list = DB.get('shoplist', []);
+  return `<div class="card">
+    <h3>🛒 采购清单<span class="cnt">待采购 ${list.filter(i => !i.done).length}</span></h3>
+    <div class="inline-form">
+      <input type="text" id="shopText" placeholder="需要采购的物品，如：化妆棉…">
+      <button class="btn btn-primary" data-act="addSimple" data-key="shoplist" data-input="shopText">＋ 加入清单</button>
+    </div>
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => checkRow(i, 'shoplist')).join('') : emptyBox('🛒', '清单空空的')}</div>
+  </div>`;
+}
+function renderConsumeTab() {
+  const list = DB.get('consumables', []).sort((a, b) => expireDay(a) - expireDay(b));
+  return `<div class="card">
+    <h3>⏰ 耗材更换提醒</h3>
+    <p class="hint">隐形眼镜建议30天 · 电动牙刷头90天 · 美妆粉扑90天 · 内衣裤180天 · 毛巾90天 · 枕头365天</p>
+    <div class="form-grid-3">
+      <div class="field"><label>物品名称</label><input type="text" id="csName" placeholder="如：月抛隐形眼镜"></div>
+      <div class="field"><label>开封/启用日期</label><input type="date" id="csDate" value="${today()}"></div>
+      <div class="field"><label>更换周期（天）</label><input type="number" id="csCycle" placeholder="30"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addConsumable">＋ 添加提醒</button>
+  </div>
+  <div class="card">
+    ${list.length ? `<div class="rows">${list.map(i => {
+      const exp = expireDay(i); const left = daysBetween(today(), exp);
+      const tag = left < 0 ? `<span class="tag tag-danger">已超期 ${-left} 天</span>` : left <= 7 ? `<span class="tag tag-warn">${left} 天后到期</span>` : `<span class="tag tag-olive">剩 ${left} 天</span>`;
+      return `<div class="row">
+        <span class="row-text"><b>${esc(i.name)}</b><br><span style="font-size:12px;color:var(--choco-faint)">启用 ${shortDate(i.date)} · 周期 ${i.cycle} 天${i.lastChange ? ' · 上次换新 ' + shortDate(i.lastChange) : ''}</span></span>
+        ${tag}
+        <button class="btn btn-soft btn-sm" data-act="renewItem" data-id="${i.id}">已换新</button>
+        <button class="del" data-act="delItem" data-key="consumables" data-id="${i.id}">✕</button>
+      </div>`;
+    }).join('')}</div>` : emptyBox('⏰', '添加消耗品，到期自动提醒')}
+  </div>`;
+}
+function expireDay(i) { return addDays(i.lastChange || i.date, num(i.cycle)); }
+ACTIONS.addConsumable = () => {
+  const name = $('#csName').value.trim(), cycle = num($('#csCycle').value);
+  if (!name || cycle <= 0) { toast('填写名称和更换周期', 'err'); return; }
+  const list = DB.get('consumables', []);
+  list.push({ id: uid(), name, date: $('#csDate').value || today(), cycle });
+  DB.set('consumables', list); refresh(); toast('提醒已添加 ✓');
+};
+ACTIONS.renewItem = el => {
+  const list = DB.get('consumables', []); const it = list.find(x => x.id === el.dataset.id);
+  if (it) { it.lastChange = today(); DB.set('consumables', list); refresh(); toast('已记录换新 ✓'); }
+};
+
+/* ============ 7. 👗 穿搭参考 ============ */
+registerModule({
+  id: 'outfit', icon: '👗', name: '穿搭参考',
+  render(el) {
+    const list = DB.get('outfits', []);
+    const body = DB.get('outfitBody', {});
+    el.innerHTML = pageHead('👗', '穿搭参考', '输入单品与场合，生成搭配建议 + 穿搭参考图，历史自动存档') + `
+    <div class="card">
+      <h3>✏️ 今日穿搭输入</h3>
+      <div class="form-grid">
+        <div class="field"><label>上衣</label><input type="text" id="ofTop" placeholder="如：白色短袖衬衫"></div>
+        <div class="field"><label>下装</label><input type="text" id="ofBottom" placeholder="如：卡其色阔腿裤"></div>
+        <div class="field"><label>鞋子</label><input type="text" id="ofShoes" placeholder="如：小白鞋"></div>
+        <div class="field"><label>配饰（选填）</label><input type="text" id="ofAcc" placeholder="如：金色小耳环"></div>
+        <div class="field"><label>场合</label><select id="ofScene"><option>通勤上班</option><option>约会</option><option>休闲出游</option><option>拍照打卡</option><option>运动</option><option>居家</option></select></div>
+        <div class="field"><label>风格偏好</label><input type="text" id="ofStyle" placeholder="如：温柔/干练/少年感"></div>
+        <div class="field"><label>身高 cm（选填）</label><input type="number" id="ofHeight" value="${body.height || ''}" data-chg="save" data-save="outfitBody" data-path="height"></div>
+        <div class="field"><label>体重 kg（选填）</label><input type="number" id="ofWeight" value="${body.weight || ''}" data-chg="save" data-save="outfitBody" data-path="weight"></div>
+      </div>
+      <button class="btn btn-primary" data-act="genOutfit">✨ 生成搭配建议 + 参考图</button>
+    </div>
+    <div id="outfitPreview"></div>
+    <div class="card">
+      <h3>🗂️ 穿搭历史<span class="cnt">${list.length} 套 · 自动保存</span></h3>
+      ${list.length ? `<div class="rows">${list.map(i => `
+        <details class="fold" style="margin-bottom:10px">
+          <summary><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👗 ${esc(i.top)} + ${esc(i.bottom)} · ${esc(i.scene)}</span><span class="tag tag-gray">${shortDate(i.date)}</span></summary>
+          <div class="fold-body">
+            ${i.img ? `<img src="${i.img}" style="width:100%;max-width:340px;border-radius:14px;border:1px solid var(--line);cursor:pointer" data-act="lightbox" data-src="${i.img}" alt="穿搭参考图">` : ''}
+            <div class="advice-list">${(i.advice || []).map(a => `<div class="advice-item"><span class="ico">💡</span><span>${esc(a)}</span></div>`).join('')}</div>
+            <div style="text-align:right"><button class="btn btn-danger btn-sm" data-act="delItem" data-key="outfits" data-id="${i.id}">删除</button></div>
+          </div>
+        </details>`).join('')}</div>` : emptyBox('👗', '生成第一套搭配建议吧')}
+    </div>`;
+  }
+});
+function outfitAdviceEngine(r) {
+  const adv = [];
+  const topC = pickColor(r.top), botC = pickColor(r.bottom);
+  const colorName = Object.keys(COLOR_WORDS).find(k => (r.top + r.bottom).includes(k));
+  adv.push(`【颜色】全身颜色控制在3种以内最稳：${r.top} 作主色，${r.bottom} 与鞋履选择同色系或中性色呼应${colorName ? `（注意${colorName}系单品避免同时出现两种高饱和色）` : ''}。包袋/鞋子选一个颜色与上衣呼应，整体感立刻提升。`);
+  adv.push(`【显高】提高腰线是关键：上衣塞进下装或选短款上衣 + 高腰下装，视觉腿长+5cm；鞋与下装同色系延伸感更强。`);
+  adv.push(`【显瘦】深色放想收的部位、浅色放想突出的部位；V领/竖线条拉长颈部与身形；${r.bottom.includes('阔腿') || r.bottom.includes('直筒') ? '阔腿/直筒裤记得露出脚踝或选九分长，避免压个子' : '下装避免过于蓬松的廓形，A字或直筒更显利落'}。`);
+  const sceneMap = { '通勤上班': '通勤场合适度正式：剪裁利落、配色克制，配饰选小巧款；避免过于随意的破洞/拖鞋元素', '约会': '约会场合加一分柔感：面料带垂坠或泡泡袖、淡粉色系点缀，配饰选一件亮点即可，避免全身用力过猛', '休闲出游': '出游重舒适与层次：宽松上衣+有型下装，加一顶帽子或帆布包提升氛围感，鞋子优先好走路', '拍照打卡': '拍照场合强化视觉记忆点：一个高饱和色块或一件有廓形的单品，避开过碎的图案，纯色大面积更出片', '运动': '运动场合选速干面料+同色系套装，利落显精神', '居家': '居家选柔软面料+宽松版型，舒适优先，燕麦色/奶白最治愈' };
+  adv.push(`【场合】${sceneMap[r.scene] || '根据场合调整正式度'}`);
+  if (r.style) adv.push(`【风格】想穿出「${r.style}」感：${r.style.includes('干练') || r.style.includes('利落') ? '选挺括面料与直线剪裁，配饰金属色' : r.style.includes('温柔') || r.style.includes('甜') ? '选垂坠面料、圆领/方领、奶油色系' : r.style.includes('酷') || r.style.includes('少年') ? '选oversize廓形、工装元素、黑白灰+一抹亮色' : '围绕关键词统一面料与色彩基调，避免元素混杂'}。`);
+  if (r.acc) adv.push(`【配饰】${r.acc} 与整体保持同一金属色/色调，全身配饰不超过3处，焦点集中更显精致。`);
+  return adv;
+}
+function drawOutfitCard(r) {
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 880;
+  const x = c.getContext('2d');
+  x.fillStyle = '#FFFDF2'; x.fillRect(0, 0, 640, 880);
+  x.fillStyle = '#8AA832'; x.fillRect(0, 0, 640, 100);
+  x.fillStyle = '#fff'; x.font = 'bold 32px sans-serif'; x.fillText('🌿 今日穿搭参考', 40, 62);
+  x.fillStyle = '#331915'; x.font = '600 26px sans-serif';
+  const rows = [['👕 上衣', r.top], ['👖 下装', r.bottom], ['👟 鞋子', r.shoes], ['💍 配饰', r.acc || '（未填）']];
+  rows.forEach(([lab, val], i) => {
+    const y = 160 + i * 130;
+    x.fillStyle = pickColor(val); rr(x, 48, y, 88, 88, 20); x.fill();
+    x.fillStyle = 'rgba(51,25,21,.12)'; rr(x, 48, y, 88, 88, 20); x.stroke();
+    x.fillStyle = '#6B4A44'; x.font = '20px sans-serif'; x.fillText(lab, 160, y + 34);
+    x.fillStyle = '#331915'; x.font = 'bold 26px sans-serif';
+    let v = String(val || ''); if (v.length > 12) v = v.slice(0, 12) + '…';
+    x.fillText(v, 160, y + 70);
+  });
+  const y2 = 160 + 4 * 130 + 20;
+  x.fillStyle = '#6B4A44'; x.font = '22px sans-serif';
+  x.fillText(`场合：${r.scene}    风格：${r.style || '随性'}`, 48, y2);
+  x.fillStyle = '#9C8078'; x.font = '18px sans-serif';
+  x.fillText(`Olive Workbench · ${r.date}`, 48, y2 + 46);
+  x.fillStyle = '#8AA832'; rr(x, 48, y2 + 76, 544, 60, 30); x.fill();
+  x.fillStyle = '#fff'; x.font = '600 22px sans-serif';
+  x.fillText('简约 · 干净 · 大量留白', 210, y2 + 115);
+  return c.toDataURL('image/jpeg', .78);
+}
+ACTIONS.genOutfit = () => {
+  const r = {
+    id: uid(), date: today(),
+    top: $('#ofTop').value.trim(), bottom: $('#ofBottom').value.trim(),
+    shoes: $('#ofShoes').value.trim(), acc: $('#ofAcc').value.trim(),
+    scene: $('#ofScene').value, style: $('#ofStyle').value.trim()
+  };
+  if (!r.top || !r.bottom || !r.shoes) { toast('上衣、下装、鞋子至少都要填哦', 'err'); return; }
+  r.advice = outfitAdviceEngine(r);
+  try { r.img = drawOutfitCard(r); } catch(e) {}
+  const list = DB.get('outfits', []);
+  list.unshift(r); DB.set('outfits', list);
+  refresh();
+  setTimeout(() => {
+    const first = $('#page details.fold');
+    if (first) first.open = true;
+    toast('搭配建议与参考图已生成并存档 ✓');
+  }, 60);
+};
+
+</script>
+<!-- 内联自 js/modules-b.js -->
+<script>
+'use strict';
+/* ================================================================
+   板块 8-15：美妆护肤 / 存钱目标 / 猫咪档案 / 纪念日 / 人情台账 / 愿望清单 / 家人档案 / 设置
+================================================================ */
+
+/* ============ 8. 💄 美妆护肤 ============ */
+registerModule({
+  id: 'beauty', icon: '💄', name: '美妆护肤',
+  render(el) {
+    const tab = ui.tab.beauty || 'tutorials';
+    el.innerHTML = pageHead('💄', '美妆护肤', '博主教程 · 妆容参考 · 彩妆收纳 · 护肤护理，美力全记录') +
+      subtabs('beauty', [
+        { id: 'tutorials', name: '📺 博主教程' }, { id: 'looks', name: '🎨 妆容参考' },
+        { id: 'case', name: '🧴 彩妆收纳' }, { id: 'skincare', name: '🌸 护肤护理' }
+      ]) +
+      ({ tutorials: renderBtTutorials, looks: renderBtLooks, case: renderBtCase, skincare: renderBtSkincare })[tab]();
+  }
+});
+function renderBtTutorials() {
+  const list = DB.get('btTutorials', []);
+  return `<div class="card">
+    <h3>📺 博主教程收藏<span class="cnt">${list.length} 条</span></h3>
+    <p class="hint">记录想学的化妆博主与视频，随时回看学习</p>
+    <div class="field"><label>博主名称</label><input type="text" id="btName" placeholder="如：@某某美妆"></div>
+    <div class="form-grid">
+      <div class="field"><label>视频链接</label><input type="url" id="btUrl" placeholder="https:// 视频链接"></div>
+      <div class="field"><label>妆容类型</label><input type="text" id="btType" placeholder="如：伪素颜/通勤淡妆"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addBtTutorial">＋ 收藏教程</button>
+    <div class="rows" style="margin-top:14px">${list.length ? list.map(i => `
+      <div class="row">
+        <span style="flex:none">📺</span>
+        <span class="row-text"><b>${esc(i.name)}</b> · ${esc(i.type || '妆容')}<br><span style="font-size:12px;color:var(--choco-faint)">${shortDate(i.date)}</span></span>
+        ${i.url ? `<a class="btn btn-ghost btn-sm" href="${esc(i.url)}" target="_blank" rel="noopener">回看 ↗</a>` : ''}
+        <button class="del" data-act="delItem" data-key="btTutorials" data-id="${i.id}">✕</button>
+      </div>`).join('') : emptyBox('📺', '收藏第一个教程吧')}
+  </div>`;
+}
+ACTIONS.addBtTutorial = () => {
+  const name = $('#btName').value.trim();
+  if (!name) { toast('填写博主名称', 'err'); return; }
+  const list = DB.get('btTutorials', []);
+  list.unshift({ id: uid(), name, url: $('#btUrl').value.trim(), type: $('#btType').value.trim(), date: today() });
+  DB.set('btTutorials', list); refresh(); toast('已收藏 ✓');
+};
+function renderBtLooks() {
+  const list = DB.get('btLooks', []);
+  return `<div class="card">
+    <h3>🎨 妆容搭配参考</h3>
+    <p class="hint">输入当日穿搭风格与出行场合，结合脸型生成适配妆容建议</p>
+    <div class="form-grid-3">
+      <div class="field"><label>穿搭风格</label><input type="text" id="bkStyle" placeholder="如：温柔奶油系"></div>
+      <div class="field"><label>出行场合</label><select id="bkScene"><option>通勤上班</option><option>约会</option><option>拍照打卡</option><option>休闲出游</option><option>居家</option></select></div>
+      <div class="field"><label>脸型</label><select id="bkFace"><option>鹅蛋脸</option><option>圆脸</option><option>方脸</option><option>长脸</option><option>心形脸</option></select></div>
+    </div>
+    <button class="btn btn-primary" data-act="genLook">✨ 生成妆容建议</button>
+    <div id="lookResult"></div>
+  </div>
+  ${list.length ? `<div class="card"><h3>🗂️ 妆容参考历史</h3><div class="rows">${list.map(i => `
+    <details class="fold" style="margin-bottom:8px">
+      <summary><span style="flex:1">${esc(i.scene)} · ${esc(i.face)} · ${esc(i.style || '随性')}</span><span class="tag tag-gray">${shortDate(i.date)}</span></summary>
+      <div class="fold-body"><div class="advice-list">${i.advice.map(a => `<div class="advice-item"><span class="ico">💄</span><span>${esc(a)}</span></div>`).join('')}</div>
+      <div style="text-align:right"><button class="btn btn-danger btn-sm" data-act="delItem" data-key="btLooks" data-id="${i.id}">删除</button></div></div>
+    </details>`).join('')}</div></div>` : ''}`;
+}
+ACTIONS.genLook = () => {
+  const style = $('#bkStyle').value.trim(), scene = $('#bkScene').value, face = $('#bkFace').value;
+  const advice = [];
+  const faceMap = {
+    '圆脸': '修容重点在下颌缘与侧脸：腮红斜向上扫、眉峰微挑拉长脸型；避免过圆的腮红团',
+    '方脸': '柔化棱角：眉形选柔和弧眉、腮红打在颧骨上方晕开；唇形画圆润些平衡下颌线条',
+    '长脸': '横向拉伸视觉：腮红横向扫在颧骨、平眉更合适；发际线与下颌可轻扫阴影缩短中庭',
+    '心形脸': '下巴尖则重点提亮苹果肌，腮红打在脸颊中上位置，眉毛自然弧度即可',
+    '鹅蛋脸': '标准脸型几乎百搭：重点放在质感而非修形，皮肤光泽感是关键'
+  };
+  advice.push(`【脸型 · ${face}】${faceMap[face]}`);
+  const sceneMap = {
+    '通勤上班': '通勤妆求稳求快：大地色眼影+豆沙色唇，底妆轻薄持久，眼线只拉眼尾1-2mm提升精神度',
+    '约会': '约会妆加三分甜：水光感底妆、粉棕/蜜桃眼影、镜面唇釉；卧蚕和睫毛是心机重点',
+    '拍照打卡': '上镜妆要轮廓：修容加重一档、眼影饱和度提高，选雾面唇避免反光；下妆前先试镜头白平衡',
+    '休闲出游': '出游妆重持久与防晒：防晒打底必须足量，唇膏选免补妆的染色液，眼妆越简单越耐看',
+    '居家': '居家护肤优先：day off 就让皮肤休息，敷个面膜+唇膜即可'
+  };
+  advice.push(`【场合 · ${scene}】${sceneMap[scene]}`);
+  if (style) {
+    advice.push(`【风格 · ${style}】妆容色调与穿搭同频：${pickColor(style) !== '#D9D2C0' ? '服装有色调倾向，妆容选同色系的腮红唇色互相呼应' : '服装偏素，妆容可以做一个亮点（如唇色或眼影），避免全脸无重点'}；全脸只强调一个重点，高级感就出来了。`);
+  }
+  const rec = { id: uid(), date: today(), style, scene, face, advice };
+  const list = DB.get('btLooks', []);
+  list.unshift(rec); DB.set('btLooks', list);
+  $('#lookResult').innerHTML = `<div class="advice-list" style="margin-top:12px">${advice.map(a => `<div class="advice-item"><span class="ico">💄</span><span>${esc(a)}</span></div>`).join('')}</div>`;
+  refresh();
+  toast('妆容建议已生成并存档 ✓');
+};
+function renderBtCase() {
+  const list = DB.get('btCase', []);
+  return `<div class="card">
+    <h3>🧴 彩妆收纳登记<span class="cnt">${list.length} 件</span></h3>
+    <p class="hint">登记拥有的化妆品与余量，低余量自动标黄提醒回购</p>
+    <div class="form-grid-3">
+      <div class="field"><label>产品名称</label><input type="text" id="mcName" placeholder="如：小金条21"></div>
+      <div class="field"><label>类型</label><select id="mcType"><option>口红</option><option>粉底</option><option>眼影</option><option>腮红</option><option>眉笔</option><option>睫毛</option><option>定妆</option><option>其他</option></select></div>
+      <div class="field"><label>余量（%）</label><input type="number" id="mcLeft" min="0" max="100" placeholder="100"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addBtCase">＋ 登记入库</button>
+    <div class="rows" style="margin-top:14px">${list.length ? list.map(i => `
+      <div class="row">
+        <span class="tag" style="flex:none">${esc(i.type)}</span>
+        <span class="row-text"><b>${esc(i.name)}</b>
+          <div style="max-width:220px;margin-top:5px">${progressBar(num(i.left))}</div>
+        </span>
+        <span class="tag ${num(i.left) <= 20 ? 'tag-warn' : 'tag-olive'}">${i.left}%</span>
+        <button class="del" data-act="delItem" data-key="btCase" data-id="${i.id}">✕</button>
+      </div>`).join('') : emptyBox('🧴', '登记第一件彩妆，打造专属妆品清单')}
+  </div>`;
+}
+ACTIONS.addBtCase = () => {
+  const name = $('#mcName').value.trim();
+  if (!name) { toast('填写产品名称', 'err'); return; }
+  const list = DB.get('btCase', []);
+  list.unshift({ id: uid(), name, type: $('#mcType').value, left: Math.max(0, Math.min(100, num($('#mcLeft').value) || 100)) });
+  DB.set('btCase', list); refresh(); toast('已登记 ✓');
+};
+function renderBtSkincare() {
+  const list = DB.get('btSkincare', []).sort((a, b) => daysBetween(a.date, b.date));
+  const nextDay = i => addDays(i.lastDone || i.date, num(i.cycle));
+  return `<div class="card">
+    <h3>🌸 护肤护理记录</h3>
+    <p class="hint">面膜、面部清洁、医美、身体护理等项目，设置周期自动推算下次时间</p>
+    <div class="form-grid-3">
+      <div class="field"><label>护理项目</label><select id="skItem"><option>面膜</option><option>面部清洁</option><option>医美项目</option><option>身体护理</option><option>头发护理</option><option>其他</option></select></div>
+      <div class="field"><label>完成日期</label><input type="date" id="skDate" value="${today()}"></div>
+      <div class="field"><label>护理周期（天）</label><input type="number" id="skCycle" placeholder="如 7"></div>
+    </div>
+    <button class="btn btn-primary" data-act="addBtSkincare">＋ 记录护理</button>
+  </div>
+  <div class="card">
+    ${list.length ? `<div class="rows">${list.map(i => {
+      const next = nextDay(i); const left = daysBetween(today(), next);
+      const tag = left < 0 ? `<span class="tag tag-danger">已超期 ${-left} 天</span>` : left <= 3 ? `<span class="tag tag-warn">${left} 天后该做啦</span>` : `<span class="tag tag-olive">下次 ${shortDate(next)}</span>`;
+      return `<div class="row">
+        <span class="row-text"><b>${esc(i.item)}</b>${i.note ? ' · ' + esc(i.note) : ''}<br><span style="font-size:12px;color:var(--choco-faint)">上次：${shortDate(i.lastDone || i.date)} · 周期 ${i.cycle} 天</span></span>
+        ${tag}
+        <button class="btn btn-soft btn-sm" data-act="doneSkincare" data-id="${i.id}">今天做了</button>
+        <button class="del" data-act="delItem" data-key="btSkincare" data-id="${i.id}">✕</button>
+      </div>`;
+    }).join('')}</div>` : emptyBox('🌸', '记录第一次护理，形成自己的护理周期')}
+  </div>`;
+}
+ACTIONS.addBtSkincare = () => {
+  const cycle = num($('#skCycle').value);
+  if (cycle <= 0) { toast('填写护理周期（天）', 'err'); return; }
+  const list = DB.get('btSkincare', []);
+  list.push({ id: uid(), item: $('#skItem').value, date: $('#skDate').value || today(), cycle, note: '' });
+  DB.set('btSkincare', list); refresh(); toast('护理已记录 ✓');
+};
+ACTIONS.doneSkincare = el => {
+  const list = DB.get('btSkincare', []); const it = list.find(x => x.id === el.dataset.id);
+  if (it) { it.lastDone = today(); DB.set('btSkincare', list); refresh(); toast('已更新，下次时间已重新推算 ✓'); }
+};
+
+/* ============ 9. 💰 存钱目标 ============ */
+registerModule({
+  id: 'saving', icon: '💰', name: '存钱目标',
+  render(el) {
+    const goals = DB.get('savingGoals', []);
+    const logs = DB.get('savingLogs', []).slice().sort((a, b) => daysBetween(a.date, b.date));
+    const totalIn = logs.filter(l => l.type === 'in').reduce((s, l) => s + num(l.amount), 0);
+    const totalOut = logs.filter(l => l.type === 'out').reduce((s, l) => s + num(l.amount), 0);
+    const goalOpts = goals.map((g, idx) => `<option value="${idx}">${esc(g.name)}</option>`).join('');
+    el.innerHTML = pageHead('💰', '存钱目标', '目标进度可视化 · 收支明细 · 存钱历史永久留存') + `
+      <div class="stat-grid" style="margin-bottom:20px">
+        <div class="stat-cell"><div class="num">${totalIn - totalOut}</div><div class="lab">当前存款</div></div>
+        <div class="stat-cell"><div class="num" style="color:var(--olive-deep)">+${totalIn}</div><div class="lab">累计存入</div></div>
+        <div class="stat-cell"><div class="num" style="color:var(--danger)">-${totalOut}</div><div class="lab">累计取出</div></div>
+      </div>
+      <div class="card">
+        <h3>🎯 设置存钱目标</h3>
+        <div class="form-grid-3">
+          <div class="field"><label>目标名称</label><input type="text" id="svName" placeholder="如：旅行基金"></div>
+          <div class="field"><label>目标金额（元）</label><input type="number" id="svAmount" placeholder="10000"></div>
+          <div class="field"><label>计划完成时间</label><input type="date" id="svDeadline"></div>
+        </div>
+        <button class="btn btn-primary" data-act="addGoal">＋ 建立目标</button>
+      </div>
+      ${goals.length ? `<div class="block"><h3 style="margin-bottom:12px">📈 目标进度</h3>
+        ${goals.map((g, idx) => {
+          const saved = logs.filter(l => l.goal === g.name).reduce((s, l) => s + (l.type === 'in' ? num(l.amount) : -num(l.amount)), 0);
+          const pct = Math.min(100, saved / Math.max(1, num(g.amount)) * 100);
+          const leftDays = g.deadline ? daysBetween(today(), g.deadline) : null;
+          return `<div class="card" style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+              <b>🎯 ${esc(g.name)}</b>
+              <span style="display:flex;gap:6px;flex-wrap:wrap">
+                ${g.deadline ? `<span class="tag ${leftDays < 0 ? 'tag-danger' : 'tag-olive'}">${leftDays >= 0 ? '剩 ' + leftDays + ' 天' : '已到期'}</span>` : ''}
+                <span class="tag tag-gray">${pct.toFixed(1)}%</span>
+                <button class="del" data-act="delGoal" data-idx="${idx}">✕</button>
+              </span>
+            </div>
+            ${progressBar(pct)}
+            <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;flex-wrap:wrap;gap:6px">
+              <span>已存 <b class="money-in">${saved}</b> / ${g.amount} 元</span>
+              <span>还差 <b style="color:var(--warn)">${Math.max(0, num(g.amount) - saved)}</b> 元达成目标</span>
+            </div>
+          </div>`;
+        }).join('')}</div>` : ''}
+      <div class="card">
+        <h3>💵 记一笔收支</h3>
+        ${goals.length ? `
+        <div class="form-grid-3">
+          <div class="field"><label>存入目标</label><select id="svLogGoal">${goalOpts}</select></div>
+          <div class="field"><label>类型</label><select id="svLogType"><option value="in">存入 💚</option><option value="out">取出 🍂</option></select></div>
+          <div class="field"><label>金额（元）</label><input type="number" id="svLogAmount" placeholder="500"></div>
+          <div class="field"><label>日期</label><input type="date" id="svLogDate" value="${today()}"></div>
+          <div class="field"><label>备注（选填）</label><input type="text" id="svLogNote" placeholder="如：工资到账"></div>
+          <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" data-act="addSavingLog">＋ 记录</button></div>
+        </div>` : `<p class="hint">先建立一个存钱目标，再记录收支吧</p>`}
+      </div>
+      <div class="card">
+        <h3>📒 收支明细<span class="cnt">${logs.length} 笔</span></h3>
+        ${logs.length ? `<div class="rows">${logs.slice().reverse().map(l => `
+          <div class="ledger">
+            <span class="tag tag-gray">${shortDate(l.date)}</span>
+            <span class="row-text" style="flex:1">${esc(l.goal)}${l.note ? ' · ' + esc(l.note) : ''}</span>
+            <span class="${l.type === 'in' ? 'money-in' : 'money-out'}">${l.type === 'in' ? '+' : '-'}${l.amount} 元</span>
+            <button class="del" data-act="delItem" data-key="savingLogs" data-id="${l.id}">✕</button>
+          </div>`).join('')}</div>` : emptyBox('💰', '第一笔存入从今天开始')}
+      </div>`;
+  }
+});
+ACTIONS.addGoal = () => {
+  const name = $('#svName').value.trim(), amount = num($('#svAmount').value);
+  if (!name || amount <= 0) { toast('填写目标名称与金额', 'err'); return; }
+  const goals = DB.get('savingGoals', []);
+  goals.push({ id: uid(), name, amount, deadline: $('#svDeadline').value || '' });
+  DB.set('savingGoals', goals); refresh(); toast('目标已建立，冲鸭 💪');
+};
+ACTIONS.delGoal = el => {
+  const idx = num(el.dataset.idx);
+  confirmBox('删除该目标不会删除收支明细，确定删除？', () => {
+    const goals = DB.get('savingGoals', []); goals.splice(idx, 1); DB.set('savingGoals', goals); refresh();
+  });
+};
+ACTIONS.addSavingLog = () => {
+  const amount = num($('#svLogAmount').value);
+  if (amount <= 0) { toast('填写有效金额', 'err'); return; }
+  const goals = DB.get('savingGoals', []);
+  const goalName = goals[num($('#svLogGoal').value)]?.name;
+  if (!goalName) { toast('目标不存在', 'err'); return; }
+  const logs = DB.get('savingLogs', []);
+  logs.push({ id: uid(), goal: goalName, type: $('#svLogType').value, amount, date: $('#svLogDate').value || today(), note: $('#svLogNote').value.trim() });
+  DB.set('savingLogs', logs); refresh();
+  toast($('#svLogType').value === 'in' ? '存入成功，离目标更近一步 ✓' : '已记录取出');
+};
+
+/* ============ 10. 🐱 猫咪档案 ============ */
+registerModule({
+  id: 'cat', icon: '🐱', name: '猫咪档案',
+  render(el) {
+    const info = DB.get('catInfo', {});
+    let age = '';
+    if (info.birthday) {
+      const b = sd(info.birthday), now = new Date();
+      let months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
+      if (now.getDate() < b.getDate()) months--;
+      if (months < 0) months = 0;
+      age = months < 12 ? `刚 ${months} 个月大` : `${Math.floor(months / 12)} 岁 ${months % 12} 个月`;
+    }
+    const tab = ui.tab.cat || 'weight';
+    el.innerHTML = pageHead('🐱', '猫咪档案', '体重台账 · 驱虫 · 疫苗 · 猫粮猫砂 · 重要事项，全部历史自动留存') + `
+      <div class="card">
+        <h3>🐾 ${esc(info.name || '我的小猫')}${age ? `<span class="tag tag-olive">${age}</span>` : ''}</h3>
+        <div class="form-grid-3">
+          <div class="field"><label>猫咪名字</label><input type="text" id="catName" value="${esc(info.name || '')}" placeholder="如：年糕" data-chg="save" data-save="catInfo" data-path="name"></div>
+          <div class="field"><label>生日</label><input type="date" id="catBirth" value="${info.birthday || ''}" data-chg="save" data-save="catInfo" data-path="birthday"></div>
+          <div class="field"><label>品种/备注</label><input type="text" id="catBreed" value="${esc(info.breed || '')}" placeholder="如：英短蓝白" data-chg="save" data-save="catInfo" data-path="breed"></div>
+        </div>
+      </div>` +
+      subtabs('cat', [
+        { id: 'weight', name: '⚖️ 体重台账' }, { id: 'deworm', name: '🐛 驱虫记录' },
+        { id: 'vaccine', name: '💉 疫苗记录' }, { id: 'food', name: '🍚 猫粮记录' },
+        { id: 'litter', name: '🪣 猫砂记录' }, { id: 'notes', name: '📝 重要事项' }
+      ]) +
+      ({ weight: catWeightTab, deworm: catDewormTab, vaccine: catVaccineTab, food: catFoodTab, litter: catLitterTab, notes: catNotesTab })[tab]();
+  }
+});
+/* 统一记录行：与全站一致的 hover 点击变色交互 */
+function catRow(d, title, sub, badge, key) {
+  return `<div class="row">
+    <span class="row-text"><b>${title}</b>${sub ? `<br><span style="font-size:12px;color:var(--choco-faint)">${sub}</span>` : ''}</span>
+    ${badge || ''}
+    <button class="del" data-act="delItem" data-key="${key}" data-id="${d.id}">✕</button>
+  </div>`;
+}
+function catListWithDate(key, phText) {
+  const list = DB.get(key, []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  return { list, form: `
+    <div class="inline-form" style="flex-wrap:wrap">
+      <input type="date" id="${key}Date" value="${today()}" style="max-width:165px">
+      <input type="text" id="${key}Text" placeholder="${phText || '填写记录内容'}" style="flex:1;min-width:180px">
+      <button class="btn btn-primary" data-act="addCatRecord" data-key="${key}">＋ 记录</button>
+    </div>` };
+}
+ACTIONS.addCatRecord = el => {
+  const key = el.dataset.key;
+  const date = document.getElementById(key + 'Date').value || today();
+  const text = (document.getElementById(key + 'Text').value || '').trim();
+  if (!text) { toast('先填写记录内容', 'err'); return; }
+  const list = DB.get(key, []);
+  list.push({ id: uid(), date, text, extra: el.dataset.extra || '' });
+  DB.set(key, list); refresh(); toast('已记录 ✓');
+};
+function catWeightTab() {
+  const list = DB.get('catWeights', []).sort((a, b) => daysBetween(a.date, b.date));
+  let trend = '';
+  if (list.length >= 2) {
+    const d = num(list[list.length - 1].text) - num(list[list.length - 2].text);
+    trend = `<span class="tag ${d > 0 ? 'tag-warn' : d < 0 ? 'tag-olive' : 'tag-gray'}">${d > 0 ? '↑' : d < 0 ? '↓' : '→'} ${Math.abs(d).toFixed(2)}kg</span>`;
+  }
+  const { form } = catListWithDate('catWeights', '体重（kg），如：4.25');
+  return `<div class="card">
+    <h3>⚖️ 体重台账${trend ? `<span style="margin-left:8px"></span>${trend}` : ''}</h3>
+    <p class="hint">在内容框填写体重数字（kg），如：4.25</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.slice().reverse().map(i => catRow(i, i.text + ' kg', shortDate(i.date), '', 'catWeights')).join('') : emptyBox('⚖️', '记录第一次称重')}</div>
+  </div>`;
+}
+function catDewormTab() {
+  const list = DB.get('catDeworm', []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  const latest = list[0];
+  let badge = '';
+  if (latest) {
+    const next = addDays(latest.date, 90); const left = daysBetween(today(), next);
+    badge = left < 0 ? `<span class="tag tag-danger">驱虫已超期 ${-left} 天</span>` : left <= 14 ? `<span class="tag tag-warn">${left} 天后该驱虫了</span>` : `<span class="tag tag-olive">下次驱虫 ${shortDate(next)}</span>`;
+  }
+  const { form } = catListWithDate('catDeworm', '类型+药品，如：体外 · 大宠爱');
+  return `<div class="card">
+    <h3>🐛 体内外驱虫${badge ? `<span style="margin-left:8px"></span>${badge}` : ''}</h3>
+    <p class="hint">内容填写：类型（体内/体外/体内外）+ 药品名，如：体外 · 大宠爱。建议每 90 天驱虫一次</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => catRow(i, esc(i.text), shortDate(i.date), '', 'catDeworm')).join('') : emptyBox('🐛', '记录第一次驱虫')}</div>
+  </div>`;
+}
+function catVaccineTab() {
+  const list = DB.get('catVaccine', []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  const latest = list[0];
+  let badge = '';
+  if (latest) {
+    const next = addDays(latest.date, 365); const left = daysBetween(today(), next);
+    badge = left <= 30 ? `<span class="tag tag-warn">疫苗加强针临近</span>` : `<span class="tag tag-olive">下次加强约 ${shortDate(next)}</span>`;
+  }
+  const { form } = catListWithDate('catVaccine', '如：猫三联第2针 / 狂犬疫苗');
+  return `<div class="card">
+    <h3>💉 疫苗打针记录${badge ? `<span style="margin-left:8px"></span>${badge}` : ''}</h3>
+    <p class="hint">内容填写疫苗种类，如：猫三联第2针 / 狂犬疫苗</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => catRow(i, esc(i.text), shortDate(i.date), '', 'catVaccine')).join('') : emptyBox('💉', '记录第一针疫苗')}</div>
+  </div>`;
+}
+function catFoodTab() {
+  const list = DB.get('catFood', []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  let badge = '';
+  if (list[0]) {
+    const days = daysBetween(list[0].date, today());
+    badge = days >= 45 ? `<span class="tag tag-danger">开粮已 ${days} 天，该备粮啦 🛒</span>` : `<span class="tag tag-olive">当前粮已开 ${days} 天</span>`;
+  }
+  const { form } = catListWithDate('catFood', '品牌口味+规格，如：渴望鸡 1.8kg');
+  return `<div class="card">
+    <h3>🍚 新开猫粮记录${badge ? `<span style="margin-left:8px"></span>${badge}` : ''}</h3>
+    <p class="hint">内容填写品牌口味+规格，如：渴望鸡 1.8kg。按消耗速度及时补货</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => catRow(i, esc(i.text), '开粮 ' + shortDate(i.date), '', 'catFood')).join('') : emptyBox('🍚', '记录新开的猫粮')}</div>
+  </div>`;
+}
+function catLitterTab() {
+  const list = DB.get('catLitter', []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  const { form } = catListWithDate('catLitter', '品牌与类型，如：豆腐混合砂 20L');
+  return `<div class="card">
+    <h3>🪣 更换猫砂记录</h3>
+    <p class="hint">内容填写品牌与类型，如：豆腐混合砂 20L</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => catRow(i, esc(i.text), shortDate(i.date), '', 'catLitter')).join('') : emptyBox('🪣', '记录第一次换砂')}</div>
+  </div>`;
+}
+function catNotesTab() {
+  const list = DB.get('catNotes', []).sort((a, b) => daysBetween(a.date, b.date)).reverse();
+  const { form } = catListWithDate('catNotes', '记录猫咪的重要事项，如：体检、绝育');
+  return `<div class="card">
+    <h3>📝 重要事项</h3>
+    <p class="hint">绝育、体检、异常状况、纪念日……重要的事都记下来</p>
+    ${form}
+    <div class="rows" style="margin-top:12px">${list.length ? list.map(i => catRow(i, esc(i.text), shortDate(i.date), '', 'catNotes')).join('') : emptyBox('📝', '记录猫咪的重要时刻')}</div>
+  </div>`;
+}
+
+/* ============ 11. 🎀 纪念日 ============ */
+function nextOccur(d) {
+  if (!d.yearly) return d.date;
+  const now = today();
+  const [, m, dd] = d.date.split('-');
+  let next = new Date().getFullYear() + '-' + m + '-' + dd;
+  if (daysBetween(now, next) < 0) next = (new Date().getFullYear() + 1) + '-' + m + '-' + dd;
+  return next;
+}
+registerModule({
+  id: 'days', icon: '🎀', name: '纪念日',
+  render(el) {
+    const list = DB.get('memDays', []).map(d => ({ ...d, _next: nextOccur(d) })).sort((a, b) => daysBetween(today(), a._next) - daysBetween(today(), b._next));
+    el.innerHTML = pageHead('🎀', '纪念日', '生日 · 纪念节点 · 倒计时提醒，重要的日子一个都不忘') + `
+      <div class="card">
+        <h3>➕ 添加重要日期</h3>
+        <div class="form-grid-3">
+          <div class="field"><label>名称</label><input type="text" id="mdName" placeholder="如：妈妈生日"></div>
+          <div class="field"><label>日期</label><input type="date" id="mdDate"></div>
+          <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary" style="width:100%" data-act="addMemDay">＋ 添加</button></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--choco-soft);cursor:pointer">
+          <input type="checkbox" class="chk" id="mdYearly" checked> 每年循环（生日、周年类勾选）
+        </label>
+      </div>
+      <div class="card">
+        <h3>🎀 全部纪念日<span class="cnt">${list.length} 个</span></h3>
+        ${list.length ? `<div class="rows">${list.map(d => {
+          const left = daysBetween(today(), d._next);
+          const badge = left === 0 ? `<span class="tag tag-danger">🎉 就是今天！</span>` : left <= 30 ? `<span class="tag tag-warn">还有 ${left} 天</span>` : `<span class="tag tag-olive">还有 ${left} 天</span>`;
+          return `<div class="row">
+            <span style="flex:none;font-size:18px">🎀</span>
+            <span class="row-text"><b>${esc(d.name)}</b><br><span style="font-size:12px;color:var(--choco-faint)">${cnDate(d._next)}${d.yearly ? ' · 每年循环' : ''}</span></span>
+            ${badge}
+            <button class="del" data-act="delItem" data-key="memDays" data-id="${d.id}">✕</button>
+          </div>`;
+        }).join('')}</div>` : emptyBox('🎀', '把重要的日子收藏起来')}
+      </div>`;
+  }
+});
+ACTIONS.addMemDay = () => {
+  const name = $('#mdName').value.trim(), date = $('#mdDate').value;
+  if (!name || !date) { toast('填写名称和日期', 'err'); return; }
+  const list = DB.get('memDays', []);
+  list.push({ id: uid(), name, date, yearly: $('#mdYearly').checked });
+  DB.set('memDays', list); refresh(); toast('已收藏这个日子 ✓');
+};
+
+/* ============ 12. 🤝 人情台账 ============ */
+registerModule({
+  id: 'favor', icon: '🤝', name: '人情台账',
+  render(el) {
+    const list = DB.get('favors', []).slice().sort((a, b) => daysBetween(a.date, b.date));
+    el.innerHTML = pageHead('🤝', '人情台账', '送礼随礼有账可查，应酬往来心中有数') + `
+      <div class="card">
+        <h3>➕ 新增一笔往来</h3>
+        <div class="form-grid">
+          <div class="field"><label>对方姓名</label><input type="text" id="fvName" placeholder="如：王阿姨"></div>
+          <div class="field"><label>发生日期</label><input type="date" id="fvDate" value="${today()}"></div>
+          <div class="field"><label>我方送出（礼物/礼金）</label><input type="text" id="fvGive" placeholder="如：礼金 600 元"></div>
+          <div class="field"><label>对方回赠（礼物/礼金）</label><input type="text" id="fvGet" placeholder="如：喜糖一盒"></div>
+        </div>
+        <div class="field"><label>备注事项</label><input type="text" id="fvNote" placeholder="如：她家孩子满月酒"></div>
+        <button class="btn btn-primary" data-act="addFavor">＋ 记录往来</button>
+      </div>
+      <div class="card">
+        <h3>📒 往来明细<span class="cnt">${list.length} 笔</span></h3>
+        ${list.length ? `<div class="table-wrap"><table>
+          <thead><tr><th>姓名</th><th>日期</th><th>我方送出</th><th>对方回赠</th><th>备注</th><th></th></tr></thead>
+          <tbody>${list.map(i => `<tr>
+            <td><b>${esc(i.name)}</b></td><td>${shortDate(i.date)}</td>
+            <td>${esc(i.give || '—')}</td><td>${esc(i.get || '—')}</td><td style="max-width:160px">${esc(i.note || '')}</td>
+            <td style="text-align:right"><button class="del" data-act="delItem" data-key="favors" data-id="${i.id}">✕</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>` : emptyBox('🤝', '记录第一笔人情往来')}
+      </div>`;
+  }
+});
+ACTIONS.addFavor = () => {
+  const name = $('#fvName').value.trim();
+  if (!name) { toast('填写对方姓名', 'err'); return; }
+  const list = DB.get('favors', []);
+  list.push({ id: uid(), name, date: $('#fvDate').value || today(), give: $('#fvGive').value.trim(), get: $('#fvGet').value.trim(), note: $('#fvNote').value.trim() });
+  DB.set('favors', list); refresh(); toast('往来已记录 ✓');
+};
+
+/* ============ 13. ✈️ 愿望清单 ============ */
+registerModule({
+  id: 'wish', icon: '✈️', name: '愿望清单',
+  render(el) {
+    const list = DB.get('wishes', []);
+    const done = list.filter(i => i.done), todo = list.filter(i => !i.done);
+    const pct = list.length ? done.length / list.length * 100 : 0;
+    const CATS = ['人生梦想', '旅行目的地', '目标', '体验'];
+    const wishRow = i => `
+      <div class="row${i.done ? ' done' : ''}">
+        <input type="checkbox" class="chk" ${i.done ? 'checked' : ''} data-chg="chk" data-key="wishes" data-id="${i.id}">
+        <span class="row-text">${esc(i.text)}<br><span class="tag" style="margin-top:4px">${esc(i.cat)}${i.doneAt ? ' · ' + shortDate(i.doneAt.slice(0, 10)) + ' 实现' : ''}</span></span>
+        <button class="del" data-act="delItem" data-key="wishes" data-id="${i.id}">✕</button>
+      </div>`;
+    el.innerHTML = pageHead('✈️', '愿望清单', '梦想 · 旅行 · 目标 · 体验，实现一个点亮一个') + `
+      <div class="card">
+        <h3>✨ 实现进度<span class="cnt">${done.length}/${list.length}</span></h3>
+        ${progressBar(pct)}
+        <p class="hint" style="margin-top:8px">已完成 ${pct.toFixed(0)}% ${list.length && pct >= 100 ? '· 全部实现，太棒了 🎉' : ''}</p>
+        <div class="inline-form" style="margin-top:6px">
+          <select id="wsCat" style="max-width:150px">${CATS.map(c => `<option>${c}</option>`).join('')}</select>
+          <input type="text" id="wsText" placeholder="许一个愿望，如：去冰岛看极光…">
+          <button class="btn btn-primary" data-act="addSimple" data-key="wishes" data-input="wsText" data-extra='{"catField":"wsCat"}'>＋ 许愿</button>
+        </div>
+      </div>
+      <div class="card"><h3>🌟 待实现<span class="cnt">${todo.length}</span></h3>
+        <div class="rows">${todo.length ? todo.map(wishRow).join('') : emptyBox('🌟', '待实现的愿望空空的')}</div>
+      </div>
+      <div class="card"><h3>🎉 已实现<span class="cnt">${done.length}</span></h3>
+        <div class="rows">${done.length ? done.map(wishRow).join('') : emptyBox('🎉', '实现的愿望会出现在这里')}</div>
+      </div>`;
+  }
+});
+/* 许愿时带上分类 */
+const _addSimple = ACTIONS.addSimple;
+ACTIONS.addSimple = el => {
+  if (el.dataset.extra === '{"catField":"wsCat"}') {
+    const text = $('#wsText').value.trim();
+    if (!text) { toast('先许个愿吧', 'err'); return; }
+    const list = DB.get('wishes', []);
+    list.unshift({ id: uid(), text, cat: $('#wsCat').value, done: false, date: today(), createdAt: new Date().toISOString() });
+    DB.set('wishes', list); $('#wsText').value = ''; refresh(); toast('愿望已收藏 🌟');
+    return;
+  }
+  _addSimple(el);
+};
+
+/* ============ 14. 👨‍👩‍👧 家人档案 ============ */
+registerModule({
+  id: 'family', icon: '👨‍👩‍👧', name: '家人档案',
+  render(el) {
+    const list = DB.get('family', []);
+    const fCard = i => `
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <b style="font-size:16px">👤 ${esc(i.name)}${i.rel ? `<span class="tag tag-olive" style="margin-left:8px">${esc(i.rel)}</span>` : ''}</b>
+          <span style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" data-act="editFamily" data-id="${i.id}">编辑</button>
+            <button class="del" data-act="delItem" data-key="family" data-id="${i.id}">✕</button>
+          </span>
+        </div>
+        <div class="stat-grid">
+          ${[['身高', i.height, 'cm'], ['体重', i.weight, 'kg'], ['衣服尺码', i.cloth, ''], ['鞋码', i.shoe, ''], ['腰围', i.waist, 'cm']].map(([l, v, u]) =>
+            `<div class="stat-cell"><div class="num" style="font-size:16px">${v ? esc(v) + (u ? '<span style="font-size:11px">' + u + '</span>' : '') : '—'}</div><div class="lab">${l}</div></div>`).join('')}
+        </div>
+        ${i.likes ? `<div class="note-box" style="margin-top:10px">💚 喜好：${esc(i.likes)}</div>` : ''}
+        ${i.taboo ? `<div class="note-box" style="margin-top:8px;background:#FBEFEC;border-color:#F2D5CE">🚫 忌口/忌讳：${esc(i.taboo)}</div>` : ''}
+        ${i.note ? `<p style="font-size:13px;color:var(--choco-faint);margin-top:8px">📝 ${esc(i.note)}</p>` : ''}
+        <p class="hint" style="margin:8px 0 0">更新于 ${shortDate(i.updatedAt || i.date)}</p>
+      </div>`;
+    const editing = ui.filter.editFamily ? DB.get('family', []).find(i => i.id === ui.filter.editFamily) : null;
+    el.innerHTML = pageHead('👨‍👩‍👧', '家人档案', '尺码喜好一本账，送礼采购不再抓瞎') + `
+      <div class="card">
+        <h3>${editing ? '✏️ 编辑档案' : '➕ 新建家人档案'}</h3>
+        <input type="hidden" id="fmEditId" value="${editing ? editing.id : ''}">
+        <div class="form-grid-3">
+          <div class="field"><label>姓名</label><input type="text" id="fmName" value="${editing ? esc(editing.name) : ''}" placeholder="如：妈妈"></div>
+          <div class="field"><label>关系</label><input type="text" id="fmRel" value="${editing ? esc(editing.rel || '') : ''}" placeholder="如：母亲"></div>
+          <div class="field"><label>身高 cm</label><input type="number" id="fmHeight" value="${editing ? esc(editing.height || '') : ''}"></div>
+          <div class="field"><label>体重 kg</label><input type="number" id="fmWeight" value="${editing ? esc(editing.weight || '') : ''}"></div>
+          <div class="field"><label>衣服尺码</label><input type="text" id="fmCloth" value="${editing ? esc(editing.cloth || '') : ''}" placeholder="如：M / 160/84A"></div>
+          <div class="field"><label>鞋码</label><input type="text" id="fmShoe" value="${editing ? esc(editing.shoe || '') : ''}" placeholder="如：36"></div>
+          <div class="field"><label>腰围 cm</label><input type="number" id="fmWaist" value="${editing ? esc(editing.waist || '') : ''}"></div>
+        </div>
+        <div class="field"><label>喜好（风格、颜色、爱好）</label><input type="text" id="fmLikes" value="${editing ? esc(editing.likes || '') : ''}" placeholder="如：喜欢浅色系围巾、爱喝茶"></div>
+        <div class="field"><label>忌口 / 忌讳</label><input type="text" id="fmTaboo" value="${editing ? esc(editing.taboo || '') : ''}" placeholder="如：不吃辣、对花粉过敏"></div>
+        <div class="field"><label>备注</label><textarea id="fmNote" placeholder="其他想记下的…" style="min-height:66px">${editing ? esc(editing.note || '') : ''}</textarea></div>
+        <button class="btn btn-primary" data-act="${editing ? 'saveFamilyEdit' : 'addFamily'}">${editing ? '💾 保存修改' : '＋ 建立档案'}</button>
+        ${editing ? `<button class="btn btn-ghost" data-act="cancelFamilyEdit" style="margin-left:8px">取消</button>` : ''}
+      </div>
+      ${list.length ? list.map(fCard).join('') : emptyBox('👨‍👩‍👧', '为家人建立第一份档案，送礼不再纠结尺码')}`;
+  }
+});
+function readFamilyForm() {
+  return {
+    name: $('#fmName').value.trim(), rel: $('#fmRel').value.trim(),
+    height: $('#fmHeight').value.trim(), weight: $('#fmWeight').value.trim(),
+    cloth: $('#fmCloth').value.trim(), shoe: $('#fmShoe').value.trim(), waist: $('#fmWaist').value.trim(),
+    likes: $('#fmLikes').value.trim(), taboo: $('#fmTaboo').value.trim(), note: $('#fmNote').value.trim()
+  };
+}
+ACTIONS.addFamily = () => {
+  const d = readFamilyForm();
+  if (!d.name) { toast('填写家人姓名', 'err'); return; }
+  const list = DB.get('family', []);
+  list.push({ id: uid(), ...d, date: today(), updatedAt: today() });
+  DB.set('family', list); refresh(); toast('档案已建立 ✓');
+};
+ACTIONS.editFamily = el => { ui.filter.editFamily = el.dataset.id; refresh(); window.scrollTo(0, 0); };
+ACTIONS.cancelFamilyEdit = () => { ui.filter.editFamily = null; refresh(); };
+ACTIONS.saveFamilyEdit = () => {
+  const d = readFamilyForm();
+  if (!d.name) { toast('填写家人姓名', 'err'); return; }
+  const list = DB.get('family', []); const it = list.find(i => i.id === $('#fmEditId').value);
+  if (it) { Object.assign(it, d, { updatedAt: today() }); DB.set('family', list); }
+  ui.filter.editFamily = null; refresh(); toast('档案已更新 ✓');
+};
+
+/* ============ ☁️ 云端备份（GitHub Gist / 极空间 WebDAV） ============ */
+function renderCloudCard() {
+  const gh = CloudSync.githubCfg(), wd = CloudSync.webdavCfg(), meta = CloudSync.meta();
+  const mode = ui.filter.cloudMode || 'gist';
+  const auto = DB.get('cloud_auto', false);
+  const hasSnap = DB.get('cloud_snapshot', null);
+  return `<div class="card">
+    <h3>☁️ 云端备份 · NAS / GitHub</h3>
+    <p class="hint">把全部板块数据备份到你的极空间 NAS 或 GitHub 私密 Gist，换手机 / 清缓存后一键拉取还原。凭据只保存在本机浏览器，不会进入备份文件。</p>
+    <div class="chips">
+      <button class="chip${mode === 'gist' ? ' active' : ''}" data-act="cloudMode" data-m="gist">GitHub Gist</button>
+      <button class="chip${mode === 'webdav' ? ' active' : ''}" data-act="cloudMode" data-m="webdav">极空间 NAS (WebDAV)</button>
+    </div>
+    ${mode === 'gist' ? `
+      <div class="field"><label>GitHub Token（需勾选 gist 权限）</label>
+        <input type="password" id="ghToken" value="${esc(gh.token || '')}" placeholder="ghp_… / github_pat_…" data-chg="cloudCfg" data-cfg="cloud_github" data-path="token">
+      </div>
+      <div class="field"><label>Gist ID（首次备份后自动生成，无需手填）</label>
+        <input type="text" id="ghGistId" value="${esc(gh.gistId || '')}" placeholder="自动生成" data-chg="cloudCfg" data-cfg="cloud_github" data-path="gistId">
+      </div>
+      <p class="hint">Token 获取：github.com/settings/tokens → Generate new token → 勾选 gist → 生成后粘贴到这里。Gist 为私密备份，仅凭 Token 可见。</p>
+    ` : `
+      <div class="field"><label>WebDAV 地址（局域网 http://IP:端口 或极空间远程 https 地址）</label>
+        <input type="text" id="wdUrl" value="${esc(wd.url || '')}" placeholder="如 http://192.168.31.10:端口/dav/" data-chg="cloudCfg" data-cfg="cloud_webdav" data-path="url">
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>账号</label><input type="text" id="wdUser" value="${esc(wd.user || '')}" data-chg="cloudCfg" data-cfg="cloud_webdav" data-path="user"></div>
+        <div class="field"><label>密码</label><input type="password" id="wdPass" value="${esc(wd.pass || '')}" data-chg="cloudCfg" data-cfg="cloud_webdav" data-path="pass"></div>
+      </div>
+      <div class="field"><label>远程目录（选填，自动创建）</label>
+        <input type="text" id="wdDir" value="${esc(wd.dir || '')}" placeholder="如：workbench" data-chg="cloudCfg" data-cfg="cloud_webdav" data-path="dir">
+      </div>
+      <div class="note-box">💡 极空间：在管理端「设置 → 文件服务 / 传输协议」中开启 WebDAV 后填入地址。若测试提示跨域失败（极空间未允许网页直连），改用 GitHub 方式即可，备份效果相同。</div>
+    `}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn btn-ghost" data-act="cloudTest">🔌 测试连接</button>
+      <button class="btn btn-primary" data-act="cloudBackup">☁️ 一键备份到云端</button>
+      <button class="btn btn-soft" data-act="cloudRestoreBtn">⬇️ 一键还原到手机</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13.5px;color:var(--choco-soft);cursor:pointer">
+      <input type="checkbox" class="chk" ${auto ? 'checked' : ''} data-chg="cloudAuto"> 修改数据后自动备份（10分钟冷却，避免频繁上传）
+    </label>
+    <p class="hint" style="margin-top:10px">上次备份：<b>${meta.lastBackup ? fmtTime(meta.lastBackup) + ' · ' + (meta.lastMode || '') : '—'}</b>　上次还原：<b>${meta.lastRestore ? fmtTime(meta.lastRestore) + ' · ' + (meta.lastSource || '') : '—'}</b></p>
+    ${hasSnap ? `<button class="btn btn-ghost btn-sm" data-act="restoreSnapshot">↩️ 恢复还原前快照（${fmtTime(hasSnap.savedAt)}）</button>` : ''}
+  </div>`;
+}
+CHANGES.cloudCfg = el => {
+  const cfg = DB.get(el.dataset.cfg, {});
+  cfg[el.dataset.path] = el.value.trim();
+  DB.set(el.dataset.cfg, cfg);
+};
+CHANGES.cloudAuto = el => { DB.set('cloud_auto', el.checked); toast(el.checked ? '已开启自动备份，数据变动后 10 分钟内上传' : '已关闭自动备份'); };
+ACTIONS.cloudMode = el => { ui.filter.cloudMode = el.dataset.m; refresh(); };
+ACTIONS.cloudTest = async el => {
+  const btn = el; const old = btn.textContent;
+  btn.textContent = '检测中…'; btn.disabled = true;
+  const mode = ui.filter.cloudMode || 'gist';
+  try {
+    const msg = mode === 'gist' ? await CloudSync.gistTest() : await CloudSync.webdavTest();
+    btn.textContent = old; btn.disabled = false;
+    toast('✓ ' + msg);
+  } catch (e) {
+    btn.textContent = old; btn.disabled = false;
+    toast('✗ ' + e.message, 'err');
+  }
+};
+ACTIONS.cloudBackup = async el => {
+  const btn = el; const old = btn.textContent;
+  btn.textContent = '☁️ 上传中…'; btn.disabled = true;
+  const mode = ui.filter.cloudMode || 'gist';
+  try {
+    if (mode === 'gist') await CloudSync.gistUpload(); else await CloudSync.webdavUpload();
+    const m = DB.get('cloud_meta', {});
+    m.lastBackup = new Date().toISOString(); m.lastMode = mode === 'gist' ? 'GitHub' : 'NAS';
+    DB.set('cloud_meta', m);
+    toast('☁️ 已备份到' + m.lastMode + ' ✓');
+    refresh();
+  } catch (e) {
+    btn.textContent = old; btn.disabled = false;
+    toast('备份失败：' + e.message, 'err');
+  }
+};
+ACTIONS.cloudRestoreBtn = async el => {
+  const btn = el; const old = btn.textContent;
+  btn.textContent = '⬇️ 拉取中…'; btn.disabled = true;
+  const mode = ui.filter.cloudMode || 'gist';
+  try {
+    const obj = mode === 'gist' ? await CloudSync.gistDownload() : await CloudSync.webdavDownload();
+    btn.textContent = old; btn.disabled = false;
+    cloudRestore(obj, mode === 'gist' ? 'GitHub' : 'NAS');
+  } catch (e) {
+    btn.textContent = old; btn.disabled = false;
+    toast('还原失败：' + e.message, 'err');
+  }
+};
+ACTIONS.restoreSnapshot = () => {
+  const snap = DB.get('cloud_snapshot', null);
+  if (!snap || !snap.data) { toast('快照不存在', 'err'); return; }
+  confirmBox('恢复到上次还原之前的数据状态？（当前数据将被覆盖）', () => {
+    cloudSuppress = true;
+    Object.entries(snap.data).forEach(([k, v]) => { if (k !== 'wb_cloud_snapshot') localStorage.setItem(k, v); });
+    toast('快照已恢复，正在刷新…');
+    setTimeout(() => { cloudSuppress = false; location.reload(); }, 600);
+  });
+};
+
+/* ============ 15. ⚙️ 设置 ============ */
+registerModule({
+  id: 'settings', icon: '⚙️', name: '设置',
+  render(el) {
+    const STATS = [
+      ['checkin', '打卡事项'], ['todoWork', '工作任务'], ['todoLong', '长期计划'], ['ideas', '灵感条目'],
+      ['topics', '选题库存'], ['reviews', '复盘记录'], ['examNotes', '备考笔记'], ['skills', '技能'],
+      ['figure', '体态记录'], ['stock', '库存物品'], ['outfits', '穿搭存档'], ['btCase', '彩妆'],
+      ['savingLogs', '存钱明细'], ['catDeworm', '驱虫记录'], ['memDays', '纪念日'], ['favors', '人情往来'],
+      ['wishes', '愿望'], ['family', '家人档案']
+    ];
+    const totalItems = STATS.reduce((s, [k]) => s + DB.get(k, []).length, 0);
+    let bytes = 0; DB.keys().forEach(k => bytes += (localStorage.getItem(k) || '').length);
+    el.innerHTML = pageHead('⚙️', '设置', '数据备份 · 隐私说明 · 存储状态') + `
+      <div class="card">
+        <h3>🔐 隐私说明</h3>
+        <div class="note-box">
+          本工作台为<b>纯本地应用</b>：所有板块录入的数据<b>实时自动保存</b>在本设备的浏览器本地存储中，<b>不会上传任何服务器</b>。刷新、重开浏览器数据都不会丢失。<br><br>
+          ⚠️ 请注意：清除浏览器缓存/网站数据、卸载浏览器会导致数据丢失；更换设备不会自动同步。请定期导出备份文件妥善保存。
+        </div>
+      </div>
+      <div class="card">
+        <h3>💾 数据备份</h3>
+        <p class="hint">导出包含全部板块数据的 JSON 备份文件；导入备份将覆盖当前数据</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" data-act="doExport">⤓ 导出全部数据备份</button>
+          <label class="btn btn-soft" style="cursor:pointer">⤒ 导入备份文件<input type="file" accept=".json,application/json" id="importFile" style="display:none"></label>
+        </div>
+      </div>
+      ${renderCloudCard()}
+      <div class="card">
+        <h3>📊 存储状态</h3>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="num">${totalItems}</div><div class="lab">数据条目</div></div>
+          <div class="stat-cell"><div class="num">${(bytes / 1024).toFixed(0)} KB</div><div class="lab">占用空间</div></div>
+          <div class="stat-cell"><div class="num">15</div><div class="lab">功能板块</div></div>
+        </div>
+        <div class="table-wrap" style="margin-top:12px"><table style="min-width:0">
+          <tbody>${STATS.map(([k, lab]) => { const n = DB.get(k, []).length; return n ? `<tr><td>${lab}</td><td style="text-align:right"><b>${n}</b> 条</td></tr>` : ''; }).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <h3>📱 添加到手机桌面</h3>
+        <p class="hint" style="font-size:13.5px">像 App 一样全屏使用：<br>
+        · <b>iPhone</b>：Safari 打开本页 → 分享按钮 → 「添加到主屏幕」<br>
+        · <b>Android</b>：Chrome 打开本页 → 菜单 ⋮ → 「添加到主屏幕/安装应用」</p>
+      </div>
+      <div class="card">
+        <h3>🧹 危险操作</h3>
+        <button class="btn btn-danger" data-act="wipeAll">清空全部数据</button>
+        <p class="hint" style="margin-top:8px">不可恢复，操作前请先导出备份</p>
+      </div>
+      <p style="text-align:center;color:var(--choco-faint);font-size:12px;margin-top:26px">🌿 Olive Workbench v1.0 · 简约 · 干净 · 大量留白</p>`;
+    const fi = $('#importFile');
+    if (fi) fi.onchange = e => { if (e.target.files[0]) importData(e.target.files[0]); };
+  }
+});
+ACTIONS.doExport = () => exportData();
+ACTIONS.wipeAll = () => {
+  confirmBox('即将<b>清空全部数据</b>且不可恢复，确定继续吗？', () => {
+    confirmBox('再次确认：真的要清空所有板块的数据吗？（建议先导出备份）', () => {
+      DB.keys().forEach(k => localStorage.removeItem(k));
+      location.reload();
+    }, '彻底清空');
+  }, '继续');
+};
+
+</script>
+<!-- 内联自 js/app.js -->
+<script>
+'use strict';
+/* ================================================================
+   应用初始化
+================================================================ */
+
+/* 侧栏开合 */
+$('#menuBtn').addEventListener('click', () => {
+  $('#sidebar').classList.contains('open') ? closeSidebar() : openSidebar();
+});
+$('#mask').addEventListener('click', closeSidebar);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSidebar(); } });
+
+/* 构建导航 & 启动路由 */
+buildNav();
+window.addEventListener('hashchange', renderRoute);
+if (!location.hash) location.hash = '#/' + MODULES[0].id;
+renderRoute();
+
+/* 首次打开 · 隐私提醒 */
+privacyCheck();
+
+/* PWA Service Worker 注册（file:// 下静默跳过） */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+</script>
+
+</body>
+</html>
